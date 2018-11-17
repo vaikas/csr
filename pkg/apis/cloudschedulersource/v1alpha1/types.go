@@ -36,12 +36,34 @@ type CloudSchedulerSource struct {
 
 // CloudSchedulerSourceSpec is the spec for a CloudSchedulerSource resource
 type CloudSchedulerSourceSpec struct {
-	Image            string                       `json:"image"`
-	ImagePullSecrets *corev1.LocalObjectReference `json:"imagePullSecrets,omitempty"`
+	// GoogleCloudProject is the ID of the Google Cloud Project that the PubSub Topic exists in.
+	GoogleCloudProject string `json:"googleCloudProject,omitempty"`
+
+	// Location where to create the Job in.
+	Location string `json:"location"`
+	// Schedule in cron format, for example: "* * * * *" would be run
+	// every minute.
+	Schedule string `json:"schedule"`
+	// Which method to use to call. GET,PUT or POST. If omitted uses POST
+	// +optional
+	HTTPMethod string `json:"httpMethod,omitempty"`
+	// What data to send in the call body (PUT/POST).
+	// +optional
+	Body string `json:"body,omitempty"`
+
+	// TODO: Add other configuration options here...
+
+	// Sink is a reference to an object that will resolve to a domain name to use
+	// as the sink.
+	// +optional
+	Sink *corev1.ObjectReference `json:"sink,omitempty"`
 }
 
 // CloudSchedulerSourceStatus is the status for a CloudSchedulerSource resource
 type CloudSchedulerSourceStatus struct {
+	// TODO: add conditions and other stuff here...
+	// Job is the URI for the created Cloud Scheduler Job
+	Job string `json:"job"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

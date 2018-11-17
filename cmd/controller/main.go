@@ -29,9 +29,9 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/clientcmd"
 
-	clientset "github.com/mattmoor/warm-image/pkg/client/clientset/versioned"
-	informers "github.com/mattmoor/warm-image/pkg/client/informers/externalversions"
-	"github.com/mattmoor/warm-image/pkg/reconciler/warmimage"
+	clientset "github.com/vaikas-google/csr/pkg/client/clientset/versioned"
+	informers "github.com/vaikas-google/csr/pkg/client/informers/externalversions"
+	"github.com/vaikas-google/csr/pkg/reconciler/cloudschedulersource"
 )
 
 const (
@@ -63,38 +63,38 @@ func main() {
 		logger.Fatalf("Error building kubernetes clientset: %s", err.Error())
 	}
 
-	warmimageClient, err := clientset.NewForConfig(cfg)
+	cloudSchedulerSourceClient, err := clientset.NewForConfig(cfg)
 	if err != nil {
-		logger.Fatalf("Error building warmimage clientset: %s", err.Error())
+		logger.Fatalf("Error building cloudSchedulerSource clientset: %s", err.Error())
 	}
 
 	kubeInformerFactory := kubeinformers.NewSharedInformerFactory(kubeClient, time.Second*30)
-	warmimageInformerFactory := informers.NewSharedInformerFactory(warmimageClient, time.Second*30)
+	cloudSchedulerSourceInformerFactory := informers.NewSharedInformerFactory(cloudSchedulerSourceClient, time.Second*30)
 
-	// obtain a reference to a shared index informer for the WarmImage type.
+	// obtain a reference to a shared index informer for the CloudSchedulerSource type.
 	daemonsetInformer := kubeInformerFactory.Extensions().V1beta1().DaemonSets()
-	warmimageInformer := warmimageInformerFactory.Mattmoor().V2().WarmImages()
+	cloudSchedulerSourceInformer := cloudSchedulerSourceInformerFactory.Sources().V1alpha1().CloudSchedulerSources()
 
 	// Add new controllers here.
 	controllers := []*controller.Impl{
-		warmimage.NewController(
+		cloudSchedulerSource.NewController(
 			logger,
 			kubeClient,
-			warmimageClient,
+			cloudSchedulerSourceClient,
 			daemonsetInformer,
-			warmimageInformer,
+			cloudSchedulerSourceInformer,
 			*sleeper,
 		),
 	}
 
 	go kubeInformerFactory.Start(stopCh)
-	go warmimageInformerFactory.Start(stopCh)
+	go cloudSchedulerSourceInformerFactory.Start(stopCh)
 
 	// Wait for the caches to be synced before starting controllers.
 	logger.Info("Waiting for informer caches to sync")
 	for i, synced := range []cache.InformerSynced{
 		daemonsetInformer.Informer().HasSynced,
-		warmimageInformer.Informer().HasSynced,
+		cloudSchedulerSourceInformer.Informer().HasSynced,
 	} {
 		if ok := cache.WaitForCacheSync(stopCh, synced); !ok {
 			logger.Fatalf("failed to wait for cache at index %v to sync", i)
