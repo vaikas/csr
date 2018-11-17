@@ -24,20 +24,22 @@ import (
 	"github.com/knative/pkg/logging/logkey"
 	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/runtime"
-	extv1beta1informers "k8s.io/client-go/informers/extensions/v1beta1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/cache"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	extlisters "k8s.io/client-go/listers/extensions/v1beta1"
+	duckapis "github.com/knative/pkg/apis"
+	duckv1alpha1 "github.com/knative/pkg/apis/duck/v1alpha1"
 
 	"cloud.google.com/go/scheduler/apiv1beta1"
+	servingv1alpha1 "github.com/knative/serving/pkg/apis/serving/v1alpha1"
 	"github.com/vaikas-google/csr/pkg/apis/cloudschedulersource/v1alpha1"
 	clientset "github.com/vaikas-google/csr/pkg/client/clientset/versioned"
 	cloudschedulersourcescheme "github.com/vaikas-google/csr/pkg/client/clientset/versioned/scheme"
 	informers "github.com/vaikas-google/csr/pkg/client/informers/externalversions/cloudschedulersource/v1alpha1"
+	servinginformers "github.com/vaikas-google/csr/pkg/client/informers/externalversions/cloudschedulersource/v1alpha1"
 	listers "github.com/vaikas-google/csr/pkg/client/listers/cloudschedulersource/v1alpha1"
 	"github.com/vaikas-google/csr/pkg/reconciler/cloudschedulersource/resources"
 	schedulerpb "google.golang.org/genproto/googleapis/cloud/scheduler/v1beta1"
@@ -52,10 +54,11 @@ type Reconciler struct {
 	// cloudschedulersourceclientset is a clientset for our own API group
 	cloudschedulersourceclientset clientset.Interface
 
-	daemonsetsLister            extlisters.DaemonSetLister
 	cloudschedulersourcesLister listers.CloudSchedulerSourceLister
 
-	sleeperImage string
+	client client.Client
+
+	raImage string
 
 	// Sugared logger is easier to use but is not as performant as the
 	// raw logger. In performance critical paths, call logger.Desugar()
@@ -79,9 +82,10 @@ func NewController(
 	logger *zap.SugaredLogger,
 	kubeclientset kubernetes.Interface,
 	cloudschedulersourceclientset clientset.Interface,
-	daemonsetInformer extv1beta1informers.DaemonSetInformer,
 	cloudschedulersourceInformer informers.CloudSchedulerSourceInformer,
-	sleeperImage string,
+	servingclientset clientset.Interface,
+	servingsourceInformer informers.CloudSchedulerSourceInformer,
+	raImage string,
 ) *controller.Impl {
 
 	// Enrich the logs with controller name
@@ -90,12 +94,15 @@ func NewController(
 	r := &Reconciler{
 		kubeclientset:                 kubeclientset,
 		cloudschedulersourceclientset: cloudschedulersourceclientset,
-		daemonsetsLister:              daemonsetInformer.Lister(),
 		cloudschedulersourcesLister:   cloudschedulersourceInformer.Lister(),
-		sleeperImage:                  sleeperImage,
+		raImage:                       raImage,
 		Logger:                        logger,
 	}
-	impl := controller.NewImpl(r, logger, "CloudSchedulerSources")
+	statsExporter, err := controller.NewStatsReporter(controllerAgentName)
+	if nil != err {
+		logger.Fatalf("Couldn't create stats exporter: %s", err)
+	}
+	impl := controller.NewImpl(r, logger, "CloudSchedulerSources", statsExporter)
 
 	logger.Info("Setting up event handlers")
 	// Set up an event handler for when CloudSchedulerSource resources change
@@ -116,6 +123,13 @@ func (c *Reconciler) Reconcile(ctx context.Context, key string) error {
 		return nil
 	}
 
+	// First try to resolve the sink, and if not found mark as not resolved.
+	uri, err := GetSinkURI(r.dynamicClient, source.Spec.Sink, source.Namespace)
+	if err != nil {
+		source.Status.MarkNoSink("NotFound", "%s", err)
+		return err
+	}
+
 	// Get the CloudSchedulerSource resource with this namespace/name
 	csr, err := c.cloudschedulersourcesLister.CloudSchedulerSources(namespace).Get(name)
 	if errors.IsNotFound(err) {
@@ -126,7 +140,7 @@ func (c *Reconciler) Reconcile(ctx context.Context, key string) error {
 		return err
 	}
 
-	if err := c.reconcileCloudSchedulerSource(ctx, csr); err != nil {
+	if err := c.reconcileCloudSchedulerSource(ctx, csr, "http://message-dumper.default.aikas.org/"); err != nil {
 		return err
 	}
 
@@ -134,28 +148,48 @@ func (c *Reconciler) Reconcile(ctx context.Context, key string) error {
 }
 
 func (c *Reconciler) reconcileCloudSchedulerSource(ctx context.Context, csr *v1alpha1.CloudSchedulerSource) error {
+	ksvc := resources.MakeService(csr, c.raImage)
+
+	c.Logger.Infof("Would create service %+v", ksvc)
+
+	c.Logger.Infof("creating scheduler job")
+	err := c.createJob(csr.Name, &csr.Spec)
+	if err != nil {
+		c.Logger.Infof("Failed to create scheduler job: %s", err)
+		return err
+	}
 	return nil
 }
 
-func (c *Reconciler) createJob(spec *v1alpha1.CloudSchedulerSourceSpec) error {
+func (c *Reconciler) createJob(name string, spec *v1alpha1.CloudSchedulerSourceSpec, target string) error {
 	ctx := context.Background()
 	csc, err := scheduler.NewCloudSchedulerClient(ctx)
 	if err != nil {
 		return err
 	}
 
+	timezone := "UTC"
+	if spec.TimeZone != "" {
+		timezone = spec.TimeZone
+	}
+
+	parent := fmt.Sprintf("projects/%s/locations/%s", spec.GoogleCloudProject, spec.Location)
+	name := fmt.Sprintf("%s/jobs/%s", parent, name)
 	req := &schedulerpb.CreateJobRequest{
-		Parent: "/projects/quantum-reducer-434/locations/us-central1",
+		Parent: parent,
 		Job: &schedulerpb.Job{
-			Name: "vaikastest",
+			Name:     name,
+			Schedule: spec.Schedule,
+			TimeZone: timezone,
 			Target: &schedulerpb.Job_HttpTarget{
 				HttpTarget: &schedulerpb.HttpTarget{
-					Uri:        "http://message-dumper.default.aikas.org/",
+					Uri:        target,
 					HttpMethod: schedulerpb.HttpMethod_POST,
 				},
 			},
 		},
 	}
+	c.Logger.Infof("Creating job as: %+v", req)
 	resp, err := csc.CreateJob(ctx, req)
 	if err != nil {
 		return err
