@@ -42,7 +42,7 @@ var (
 	masterURL  = flag.String("kubeconfig", "", "Path to a kubeconfig. Only required if out-of-cluster.")
 	kubeconfig = flag.String("master", "", "The address of the Kubernetes API server. Overrides any value in kubeconfig. Only required if out-of-cluster.")
 	// TODO(mattmoor): Move into a configmap and use the watcher.
-	sleeper = flag.String("sleeper", "", "The name of the sleeper image, see //cmd/sleeper")
+	raImage = flag.String("raimage", "", "The name of the Receive Adapter image, see //cmd/receivedapter")
 )
 
 func main() {
@@ -72,18 +72,16 @@ func main() {
 	cloudSchedulerSourceInformerFactory := informers.NewSharedInformerFactory(cloudSchedulerSourceClient, time.Second*30)
 
 	// obtain a reference to a shared index informer for the CloudSchedulerSource type.
-	daemonsetInformer := kubeInformerFactory.Extensions().V1beta1().DaemonSets()
 	cloudSchedulerSourceInformer := cloudSchedulerSourceInformerFactory.Sources().V1alpha1().CloudSchedulerSources()
 
 	// Add new controllers here.
 	controllers := []*controller.Impl{
-		cloudSchedulerSource.NewController(
+		cloudschedulersource.NewController(
 			logger,
 			kubeClient,
 			cloudSchedulerSourceClient,
-			daemonsetInformer,
 			cloudSchedulerSourceInformer,
-			*sleeper,
+			*raImage,
 		),
 	}
 
@@ -93,7 +91,6 @@ func main() {
 	// Wait for the caches to be synced before starting controllers.
 	logger.Info("Waiting for informer caches to sync")
 	for i, synced := range []cache.InformerSynced{
-		daemonsetInformer.Informer().HasSynced,
 		cloudSchedulerSourceInformer.Informer().HasSynced,
 	} {
 		if ok := cache.WaitForCacheSync(stopCh, synced); !ok {

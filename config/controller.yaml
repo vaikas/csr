@@ -1,21 +1,32 @@
 apiVersion: apps/v1beta1
 kind: Deployment
 metadata:
-  name: warmimage-controller
-  namespace: warmimage-system
+  name: cloudschedulersource-controller
+  namespace: cloudschedulersource-system
 spec:
   replicas: 1
   template:
     metadata:
       labels:
-        app: warmimage-controller
+        app: cloudschedulersource-controller
     spec:
-      serviceAccountName: warmimage-controller
+      serviceAccountName: cloudschedulersource-controller
       containers:
-      - name: warmimage-controller
-        image: github.com/mattmoor/warm-image/cmd/controller
+      - env:
+        - name: GOOGLE_APPLICATION_CREDENTIALS
+          value: /var/secrets/google/key.json
+        name: cloudschedulersource-controller
+        image: github.com/vaikas-google/csr/cmd/controller
         args:
         - "-logtostderr=true"
         - "-stderrthreshold=INFO"
-        - "-sleeper"
-        - "github.com/mattmoor/warm-image/cmd/sleeper"
+        - "-raimage"
+        - "github.com/vaikas-google/csr/cmd/receiveadapter"
+        volumeMounts:
+        - mountPath: /var/secrets/google
+          name: google-cloud-key
+      terminationGracePeriodSeconds: 10
+      volumes:
+      - name: google-cloud-key
+        secret:
+          secretName: cloudschedulersource-key

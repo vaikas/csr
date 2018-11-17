@@ -36,14 +36,25 @@ type CloudSchedulerSource struct {
 
 // CloudSchedulerSourceSpec is the spec for a CloudSchedulerSource resource
 type CloudSchedulerSourceSpec struct {
+	// ServiceAccountName holds the name of the Kubernetes service account
+	// as which the underlying K8s resources should be run. If unspecified
+	// this will default to the "default" service account for the namespace
+	// in which the GitHubSource exists.
+	// +optional
+	ServiceAccountName string `json:"serviceAccountName,omitempty"`
+
 	// GoogleCloudProject is the ID of the Google Cloud Project that the PubSub Topic exists in.
 	GoogleCloudProject string `json:"googleCloudProject,omitempty"`
 
 	// Location where to create the Job in.
 	Location string `json:"location"`
+
 	// Schedule in cron format, for example: "* * * * *" would be run
 	// every minute.
 	Schedule string `json:"schedule"`
+	// Timezone to apply to the schedule. If omitted, uses UTC
+	TimeZone string `json:"timezone,omitempty"`
+
 	// Which method to use to call. GET,PUT or POST. If omitted uses POST
 	// +optional
 	HTTPMethod string `json:"httpMethod,omitempty"`
@@ -64,6 +75,11 @@ type CloudSchedulerSourceStatus struct {
 	// TODO: add conditions and other stuff here...
 	// Job is the URI for the created Cloud Scheduler Job
 	Job string `json:"job"`
+
+	// SinkURI is the current active sink URI that has been configured
+	// for the CloudSchedulerSource
+	// +optional
+	SinkURI string `json:"sinkUri,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

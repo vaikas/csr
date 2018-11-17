@@ -1,11 +1,11 @@
 apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: ClusterRoleBinding
 metadata:
-  name: warmimage-controller-admin
+  name: cloudschedulersource-controller-admin
 subjects:
   - kind: ServiceAccount
-    name: warmimage-controller
-    namespace: warmimage-system
+    name: cloudschedulersource-controller
+    namespace: cloudschedulersource-system
 roleRef:
   kind: ClusterRole
   name: cluster-admin

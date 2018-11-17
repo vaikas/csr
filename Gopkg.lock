@@ -88,6 +88,14 @@
   revision = "44d81051d367757e1c7c6a5a86423ece9afcf63c"
 
 [[projects]]
+  digest = "1:a1578f7323eca2b88021fdc9a79a99833d40b12c32a5ea4f284e2fad19ea2657"
+  name = "github.com/google/uuid"
+  packages = ["."]
+  pruneopts = "NUT"
+  revision = "d460ce9f8df2e77fb1ba55ca87fafed96c607494"
+  version = "v1.0.0"
+
+[[projects]]
   digest = "1:fb9f5147a9d6fc69057d05b0739bcd79562c55db143c3bdacfe1c9c6129461f6"
   name = "github.com/googleapis/gax-go"
   packages = ["."]
@@ -152,16 +160,20 @@
   revision = "5c1d8c8469d1ed34b2aecf4c2305b3a57fff2ee3"
 
 [[projects]]
-  digest = "1:8c6c6d60ee77613ba0eb9d43f134a6e26dae98dbb4ceb189c320b19d7e1dcc1b"
+  branch = "master"
+  digest = "1:fa1c1ab9e2d3eab90c4451abb70ecf60c3a4154c3f3ac249329e164df00285b8"
   name = "github.com/knative/pkg"
   packages = [
+    "changeset",
+    "cloudevents",
     "controller",
+    "kmeta",
     "logging",
     "logging/logkey",
     "signals",
   ]
   pruneopts = "NUT"
-  revision = "0122abd98318e345b107e01137ff05c33aa637d2"
+  revision = "3e52d67e3d58f63f43ad61241b00a9974cb03ecd"
 
 [[projects]]
   digest = "1:38c165470f72f1114bde1fa42c555bab5883ab685c95ff32d4f74a1fddeddea1"
@@ -452,7 +464,7 @@
   revision = "53feefa2559fb8dfa8d81baad31be332c97d6c77"
 
 [[projects]]
-  digest = "1:8960ef753a87391086a307122d23cd5007cee93c28189437e4f1b6ed72bffc50"
+  digest = "1:66dba704ec98aef0d6485f4fcfe544c906a7319fb2b20e0de4181b46a3b24c8a"
   name = "k8s.io/api"
   packages = [
     "admissionregistration/v1alpha1",
@@ -486,11 +498,11 @@
     "storage/v1beta1",
   ]
   pruneopts = "NUT"
-  revision = "072894a440bdee3a891dea811fe42902311cd2a3"
-  version = "kubernetes-1.11.0"
+  revision = "4e7be11eab3ffcfc1876898b8272df53785a9504"
+  version = "kubernetes-1.11.3"
 
 [[projects]]
-  digest = "1:4b0d523ee389c762d02febbcfa0734c4530ebe87abe925db18f05422adcb33e8"
+  digest = "1:e430de0896db98fb93a75f45ace427a4b6d09028777498b7c6a25d33866efdd6"
   name = "k8s.io/apimachinery"
   packages = [
     "pkg/api/equality",
@@ -538,11 +550,11 @@
     "third_party/forked/golang/reflect",
   ]
   pruneopts = "NUT"
-  revision = "103fd098999dc9c0c88536f5c9ad2e5da39373ae"
-  version = "kubernetes-1.11.0"
+  revision = "def12e63c512da17043b4f0293f52d1006603d9f"
+  version = "kubernetes-1.11.3"
 
 [[projects]]
-  digest = "1:b56d3690a536995750542805ddacd45ad6ed76d766053254c9df8a756d51e199"
+  digest = "1:4e0ad2e0e0fc529cec3f0723d94b4553cbad1dc6bce3ea80f067e35e440c0983"
   name = "k8s.io/client-go"
   packages = [
     "discovery",
@@ -672,8 +684,8 @@
     "util/workqueue",
   ]
   pruneopts = "NUT"
-  revision = "7d04d0e2a0a1a4d4a1cd6baa432a2301492e4e65"
-  version = "kubernetes-1.11.0"
+  revision = "2cefa64ff137e128daeddbd1775cd775708a05bf"
+  version = "kubernetes-1.11.3"
 
 [[projects]]
   branch = "master"
@@ -733,6 +745,8 @@
   analyzer-version = 1
   input-imports = [
     "cloud.google.com/go/scheduler/apiv1beta1",
+    "github.com/google/uuid",
+    "github.com/knative/pkg/cloudevents",
     "github.com/knative/pkg/controller",
     "github.com/knative/pkg/logging",
     "github.com/knative/pkg/logging/logkey",
