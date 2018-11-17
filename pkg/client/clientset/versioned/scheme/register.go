@@ -19,7 +19,7 @@ limitations under the License.
 package scheme
 
 import (
-	mattmoorv2 "github.com/mattmoor/warm-image/pkg/apis/warmimage/v2"
+	sourcesv1alpha1 "github.com/vaikas-google/csr/pkg/apis/cloudschedulersource/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -50,5 +50,5 @@ func init() {
 // After this, RawExtensions in Kubernetes types will serialize kube-aggregator types
 // correctly.
 func AddToScheme(scheme *runtime.Scheme) {
-	mattmoorv2.AddToScheme(scheme)
+	sourcesv1alpha1.AddToScheme(scheme)
 }

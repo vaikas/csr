@@ -19,9 +19,9 @@ limitations under the License.
 package fake
 
 import (
-	clientset "github.com/mattmoor/warm-image/pkg/client/clientset/versioned"
-	mattmoorv2 "github.com/mattmoor/warm-image/pkg/client/clientset/versioned/typed/warmimage/v2"
-	fakemattmoorv2 "github.com/mattmoor/warm-image/pkg/client/clientset/versioned/typed/warmimage/v2/fake"
+	clientset "github.com/vaikas-google/csr/pkg/client/clientset/versioned"
+	sourcesv1alpha1 "github.com/vaikas-google/csr/pkg/client/clientset/versioned/typed/cloudschedulersource/v1alpha1"
+	fakesourcesv1alpha1 "github.com/vaikas-google/csr/pkg/client/clientset/versioned/typed/cloudschedulersource/v1alpha1/fake"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/discovery"
@@ -71,12 +71,12 @@ func (c *Clientset) Discovery() discovery.DiscoveryInterface {
 
 var _ clientset.Interface = &Clientset{}
 
-// MattmoorV2 retrieves the MattmoorV2Client
-func (c *Clientset) MattmoorV2() mattmoorv2.MattmoorV2Interface {
-	return &fakemattmoorv2.FakeMattmoorV2{Fake: &c.Fake}
+// SourcesV1alpha1 retrieves the SourcesV1alpha1Client
+func (c *Clientset) SourcesV1alpha1() sourcesv1alpha1.SourcesV1alpha1Interface {
+	return &fakesourcesv1alpha1.FakeSourcesV1alpha1{Fake: &c.Fake}
 }
 
-// Mattmoor retrieves the MattmoorV2Client
-func (c *Clientset) Mattmoor() mattmoorv2.MattmoorV2Interface {
-	return &fakemattmoorv2.FakeMattmoorV2{Fake: &c.Fake}
+// Sources retrieves the SourcesV1alpha1Client
+func (c *Clientset) Sources() sourcesv1alpha1.SourcesV1alpha1Interface {
+	return &fakesourcesv1alpha1.FakeSourcesV1alpha1{Fake: &c.Fake}
 }

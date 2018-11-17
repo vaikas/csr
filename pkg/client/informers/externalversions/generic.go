@@ -21,7 +21,7 @@ package externalversions
 import (
 	"fmt"
 
-	v2 "github.com/mattmoor/warm-image/pkg/apis/warmimage/v2"
+	v1alpha1 "github.com/vaikas-google/csr/pkg/apis/cloudschedulersource/v1alpha1"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	cache "k8s.io/client-go/tools/cache"
 )
@@ -52,9 +52,9 @@ func (f *genericInformer) Lister() cache.GenericLister {
 // TODO extend this to unknown resources with a client pool
 func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource) (GenericInformer, error) {
 	switch resource {
-	// Group=mattmoor.io, Version=v2
-	case v2.SchemeGroupVersion.WithResource("warmimages"):
-		return &genericInformer{resource: resource.GroupResource(), informer: f.Mattmoor().V2().WarmImages().Informer()}, nil
+	// Group=sources.aikas.org, Version=v1alpha1
+	case v1alpha1.SchemeGroupVersion.WithResource("cloudschedulersources"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Sources().V1alpha1().CloudSchedulerSources().Informer()}, nil
 
 	}
 
