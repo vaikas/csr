@@ -19,7 +19,7 @@ limitations under the License.
 package versioned
 
 import (
-	mattmoorv2 "github.com/mattmoor/warm-image/pkg/client/clientset/versioned/typed/warmimage/v2"
+	sourcesv1alpha1 "github.com/vaikas-google/csr/pkg/client/clientset/versioned/typed/cloudschedulersource/v1alpha1"
 	discovery "k8s.io/client-go/discovery"
 	rest "k8s.io/client-go/rest"
 	flowcontrol "k8s.io/client-go/util/flowcontrol"
@@ -27,27 +27,27 @@ import (
 
 type Interface interface {
 	Discovery() discovery.DiscoveryInterface
-	MattmoorV2() mattmoorv2.MattmoorV2Interface
+	SourcesV1alpha1() sourcesv1alpha1.SourcesV1alpha1Interface
 	// Deprecated: please explicitly pick a version if possible.
-	Mattmoor() mattmoorv2.MattmoorV2Interface
+	Sources() sourcesv1alpha1.SourcesV1alpha1Interface
 }
 
 // Clientset contains the clients for groups. Each group has exactly one
 // version included in a Clientset.
 type Clientset struct {
 	*discovery.DiscoveryClient
-	mattmoorV2 *mattmoorv2.MattmoorV2Client
+	sourcesV1alpha1 *sourcesv1alpha1.SourcesV1alpha1Client
 }
 
-// MattmoorV2 retrieves the MattmoorV2Client
-func (c *Clientset) MattmoorV2() mattmoorv2.MattmoorV2Interface {
-	return c.mattmoorV2
+// SourcesV1alpha1 retrieves the SourcesV1alpha1Client
+func (c *Clientset) SourcesV1alpha1() sourcesv1alpha1.SourcesV1alpha1Interface {
+	return c.sourcesV1alpha1
 }
 
-// Deprecated: Mattmoor retrieves the default version of MattmoorClient.
+// Deprecated: Sources retrieves the default version of SourcesClient.
 // Please explicitly pick a version.
-func (c *Clientset) Mattmoor() mattmoorv2.MattmoorV2Interface {
-	return c.mattmoorV2
+func (c *Clientset) Sources() sourcesv1alpha1.SourcesV1alpha1Interface {
+	return c.sourcesV1alpha1
 }
 
 // Discovery retrieves the DiscoveryClient
@@ -66,7 +66,7 @@ func NewForConfig(c *rest.Config) (*Clientset, error) {
 	}
 	var cs Clientset
 	var err error
-	cs.mattmoorV2, err = mattmoorv2.NewForConfig(&configShallowCopy)
+	cs.sourcesV1alpha1, err = sourcesv1alpha1.NewForConfig(&configShallowCopy)
 	if err != nil {
 		return nil, err
 	}
@@ -82,7 +82,7 @@ func NewForConfig(c *rest.Config) (*Clientset, error) {
 // panics if there is an error in the config.
 func NewForConfigOrDie(c *rest.Config) *Clientset {
 	var cs Clientset
-	cs.mattmoorV2 = mattmoorv2.NewForConfigOrDie(c)
+	cs.sourcesV1alpha1 = sourcesv1alpha1.NewForConfigOrDie(c)
 
 	cs.DiscoveryClient = discovery.NewDiscoveryClientForConfigOrDie(c)
 	return &cs
@@ -91,7 +91,7 @@ func NewForConfigOrDie(c *rest.Config) *Clientset {
 // New creates a new Clientset for the given RESTClient.
 func New(c rest.Interface) *Clientset {
 	var cs Clientset
-	cs.mattmoorV2 = mattmoorv2.New(c)
+	cs.sourcesV1alpha1 = sourcesv1alpha1.New(c)
 
 	cs.DiscoveryClient = discovery.NewDiscoveryClient(c)
 	return &cs

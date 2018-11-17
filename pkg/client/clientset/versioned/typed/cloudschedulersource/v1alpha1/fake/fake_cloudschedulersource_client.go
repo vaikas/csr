@@ -19,22 +19,22 @@ limitations under the License.
 package fake
 
 import (
-	v2 "github.com/mattmoor/warm-image/pkg/client/clientset/versioned/typed/warmimage/v2"
+	v1alpha1 "github.com/vaikas-google/csr/pkg/client/clientset/versioned/typed/cloudschedulersource/v1alpha1"
 	rest "k8s.io/client-go/rest"
 	testing "k8s.io/client-go/testing"
 )
 
-type FakeMattmoorV2 struct {
+type FakeSourcesV1alpha1 struct {
 	*testing.Fake
 }
 
-func (c *FakeMattmoorV2) WarmImages(namespace string) v2.WarmImageInterface {
-	return &FakeWarmImages{c, namespace}
+func (c *FakeSourcesV1alpha1) CloudSchedulerSources(namespace string) v1alpha1.CloudSchedulerSourceInterface {
+	return &FakeCloudSchedulerSources{c, namespace}
 }
 
 // RESTClient returns a RESTClient that is used to communicate
 // with API server by this client implementation.
-func (c *FakeMattmoorV2) RESTClient() rest.Interface {
+func (c *FakeSourcesV1alpha1) RESTClient() rest.Interface {
 	var ret *rest.RESTClient
 	return ret
 }

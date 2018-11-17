@@ -26,8 +26,8 @@ CODEGEN_PKG=${CODEGEN_PKG:-$(cd ${SCRIPT_ROOT}; ls -d -1 ./vendor/k8s.io/code-ge
 #                  k8s.io/kubernetes. The output-base is needed for the generators to output into the vendor dir
 #                  instead of the $GOPATH directly. For normal projects this can be dropped.
 ${CODEGEN_PKG}/generate-groups.sh "deepcopy,client,informer,lister" \
-  github.com/mattmoor/warm-image/pkg/client github.com/mattmoor/warm-image/pkg/apis \
-  warmimage:v2 \
+  github.com/vaikas-google/csr/pkg/client github.com/vaikas-google/csr/pkg/apis \
+  cloudschedulersource:v1alpha1 \
   --go-header-file ${SCRIPT_ROOT}/hack/boilerplate/boilerplate.go.txt
 
 

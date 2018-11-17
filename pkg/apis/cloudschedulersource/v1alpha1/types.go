@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v2
+package v1alpha1
 
 import (
 	corev1 "k8s.io/api/core/v1"
@@ -25,31 +25,31 @@ import (
 // +genclient:noStatus
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// WarmImage is a specification for a WarmImage resource
-type WarmImage struct {
+// CloudSchedulerSource is a specification for a CloudSchedulerSource resource
+type CloudSchedulerSource struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   WarmImageSpec   `json:"spec"`
-	Status WarmImageStatus `json:"status"`
+	Spec   CloudSchedulerSourceSpec   `json:"spec"`
+	Status CloudSchedulerSourceStatus `json:"status"`
 }
 
-// WarmImageSpec is the spec for a WarmImage resource
-type WarmImageSpec struct {
+// CloudSchedulerSourceSpec is the spec for a CloudSchedulerSource resource
+type CloudSchedulerSourceSpec struct {
 	Image            string                       `json:"image"`
 	ImagePullSecrets *corev1.LocalObjectReference `json:"imagePullSecrets,omitempty"`
 }
 
-// WarmImageStatus is the status for a WarmImage resource
-type WarmImageStatus struct {
+// CloudSchedulerSourceStatus is the status for a CloudSchedulerSource resource
+type CloudSchedulerSourceStatus struct {
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// WarmImageList is a list of WarmImage resources
-type WarmImageList struct {
+// CloudSchedulerSourceList is a list of CloudSchedulerSource resources
+type CloudSchedulerSourceList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata"`
 
-	Items []WarmImage `json:"items"`
+	Items []CloudSchedulerSource `json:"items"`
 }

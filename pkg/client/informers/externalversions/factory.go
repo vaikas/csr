@@ -23,9 +23,9 @@ import (
 	sync "sync"
 	time "time"
 
-	versioned "github.com/mattmoor/warm-image/pkg/client/clientset/versioned"
-	internalinterfaces "github.com/mattmoor/warm-image/pkg/client/informers/externalversions/internalinterfaces"
-	warmimage "github.com/mattmoor/warm-image/pkg/client/informers/externalversions/warmimage"
+	versioned "github.com/vaikas-google/csr/pkg/client/clientset/versioned"
+	cloudschedulersource "github.com/vaikas-google/csr/pkg/client/informers/externalversions/cloudschedulersource"
+	internalinterfaces "github.com/vaikas-google/csr/pkg/client/informers/externalversions/internalinterfaces"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -172,9 +172,9 @@ type SharedInformerFactory interface {
 	ForResource(resource schema.GroupVersionResource) (GenericInformer, error)
 	WaitForCacheSync(stopCh <-chan struct{}) map[reflect.Type]bool
 
-	Mattmoor() warmimage.Interface
+	Sources() cloudschedulersource.Interface
 }
 
-func (f *sharedInformerFactory) Mattmoor() warmimage.Interface {
-	return warmimage.New(f, f.namespace, f.tweakListOptions)
+func (f *sharedInformerFactory) Sources() cloudschedulersource.Interface {
+	return cloudschedulersource.New(f, f.namespace, f.tweakListOptions)
 }
