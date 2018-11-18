@@ -28,11 +28,12 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/cache"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	//	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"cloud.google.com/go/scheduler/apiv1beta1"
 	//	servingv1alpha1
 	//	"github.com/knative/serving/pkg/apis/serving/v1alpha1"
+	servingclientset "github.com/knative/serving/pkg/client/clientset/versioned"
 	"github.com/vaikas-google/csr/pkg/apis/cloudschedulersource/v1alpha1"
 	clientset "github.com/vaikas-google/csr/pkg/client/clientset/versioned"
 	cloudschedulersourcescheme "github.com/vaikas-google/csr/pkg/client/clientset/versioned/scheme"
@@ -55,7 +56,9 @@ type Reconciler struct {
 	cloudschedulersourcesLister listers.CloudSchedulerSourceLister
 
 	dynamicClient dynamic.Interface
-	client        client.Client
+	//	client        client.Client
+
+	servingClient servingclientset.Interface
 
 	raImage string
 
@@ -83,7 +86,7 @@ func NewController(
 	dynamicClient dynamic.Interface,
 	cloudschedulersourceclientset clientset.Interface,
 	cloudschedulersourceInformer informers.CloudSchedulerSourceInformer,
-	//	servingclientset clientset.Interface,
+	servingclientset servingclientset.Interface,
 	//	servingsourceInformer informers.CloudSchedulerSourceInformer,
 	raImage string,
 ) *controller.Impl {
@@ -96,6 +99,7 @@ func NewController(
 		dynamicClient:                 dynamicClient,
 		cloudschedulersourceclientset: cloudschedulersourceclientset,
 		cloudschedulersourcesLister:   cloudschedulersourceInformer.Lister(),
+		servingClient:                 servingclientset,
 		raImage:                       raImage,
 		Logger:                        logger,
 	}
@@ -156,8 +160,15 @@ func (c *Reconciler) reconcileCloudSchedulerSource(ctx context.Context, csr *v1a
 	csr.Status.SinkURI = uri
 
 	ksvc := resources.MakeService(csr, c.raImage)
-
 	c.Logger.Infof("Would create service %+v", ksvc)
+
+	createdSvc, err := c.servingClient.ServingV1alpha1().Services(csr.Namespace).Create(ksvc)
+	if err != nil {
+		c.Logger.Infof("Service creation failed: %s", err)
+		return err
+	}
+
+	c.Logger.Infof("Created service: %+v", createdSvc)
 
 	c.Logger.Infof("creating scheduler job")
 	err = c.createJob(csr.Name, &csr.Spec, "http://message-dumper.default.aikas.org/")
