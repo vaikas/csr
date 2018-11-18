@@ -30,19 +30,17 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	duckapis "github.com/knative/pkg/apis"
-	duckv1alpha1 "github.com/knative/pkg/apis/duck/v1alpha1"
-
 	"cloud.google.com/go/scheduler/apiv1beta1"
-	servingv1alpha1 "github.com/knative/serving/pkg/apis/serving/v1alpha1"
+	//	servingv1alpha1
+	//	"github.com/knative/serving/pkg/apis/serving/v1alpha1"
 	"github.com/vaikas-google/csr/pkg/apis/cloudschedulersource/v1alpha1"
 	clientset "github.com/vaikas-google/csr/pkg/client/clientset/versioned"
 	cloudschedulersourcescheme "github.com/vaikas-google/csr/pkg/client/clientset/versioned/scheme"
 	informers "github.com/vaikas-google/csr/pkg/client/informers/externalversions/cloudschedulersource/v1alpha1"
-	servinginformers "github.com/vaikas-google/csr/pkg/client/informers/externalversions/cloudschedulersource/v1alpha1"
 	listers "github.com/vaikas-google/csr/pkg/client/listers/cloudschedulersource/v1alpha1"
 	"github.com/vaikas-google/csr/pkg/reconciler/cloudschedulersource/resources"
 	schedulerpb "google.golang.org/genproto/googleapis/cloud/scheduler/v1beta1"
+	"k8s.io/client-go/dynamic"
 )
 
 const controllerAgentName = "cloudschedulersource-controller"
@@ -56,7 +54,8 @@ type Reconciler struct {
 
 	cloudschedulersourcesLister listers.CloudSchedulerSourceLister
 
-	client client.Client
+	dynamicClient dynamic.Interface
+	client        client.Client
 
 	raImage string
 
@@ -81,10 +80,11 @@ func init() {
 func NewController(
 	logger *zap.SugaredLogger,
 	kubeclientset kubernetes.Interface,
+	dynamicClient dynamic.Interface,
 	cloudschedulersourceclientset clientset.Interface,
 	cloudschedulersourceInformer informers.CloudSchedulerSourceInformer,
-	servingclientset clientset.Interface,
-	servingsourceInformer informers.CloudSchedulerSourceInformer,
+	//	servingclientset clientset.Interface,
+	//	servingsourceInformer informers.CloudSchedulerSourceInformer,
 	raImage string,
 ) *controller.Impl {
 
@@ -93,6 +93,7 @@ func NewController(
 
 	r := &Reconciler{
 		kubeclientset:                 kubeclientset,
+		dynamicClient:                 dynamicClient,
 		cloudschedulersourceclientset: cloudschedulersourceclientset,
 		cloudschedulersourcesLister:   cloudschedulersourceInformer.Lister(),
 		raImage:                       raImage,
@@ -123,13 +124,6 @@ func (c *Reconciler) Reconcile(ctx context.Context, key string) error {
 		return nil
 	}
 
-	// First try to resolve the sink, and if not found mark as not resolved.
-	uri, err := GetSinkURI(r.dynamicClient, source.Spec.Sink, source.Namespace)
-	if err != nil {
-		source.Status.MarkNoSink("NotFound", "%s", err)
-		return err
-	}
-
 	// Get the CloudSchedulerSource resource with this namespace/name
 	csr, err := c.cloudschedulersourcesLister.CloudSchedulerSources(namespace).Get(name)
 	if errors.IsNotFound(err) {
@@ -140,20 +134,33 @@ func (c *Reconciler) Reconcile(ctx context.Context, key string) error {
 		return err
 	}
 
-	if err := c.reconcileCloudSchedulerSource(ctx, csr, "http://message-dumper.default.aikas.org/"); err != nil {
+	if err := c.reconcileCloudSchedulerSource(ctx, csr); err != nil {
 		return err
 	}
 
 	return nil
 }
 
+//, "http://message-dumper.default.aikas.org/"
+
 func (c *Reconciler) reconcileCloudSchedulerSource(ctx context.Context, csr *v1alpha1.CloudSchedulerSource) error {
+	// First try to resolve the sink, and if not found mark as not resolved.
+	uri, err := GetSinkURI(c.dynamicClient, csr.Spec.Sink, csr.Namespace)
+	if err != nil {
+		//		csr.Status.MarkNoSink("NotFound", "%s", err)
+		c.Logger.Infof("Couldn't resolve Sink URI: %s", err)
+		return err
+	}
+
+	c.Logger.Infof("Resolved Sink URI to %q", uri)
+	csr.Status.SinkURI = uri
+
 	ksvc := resources.MakeService(csr, c.raImage)
 
 	c.Logger.Infof("Would create service %+v", ksvc)
 
 	c.Logger.Infof("creating scheduler job")
-	err := c.createJob(csr.Name, &csr.Spec)
+	err = c.createJob(csr.Name, &csr.Spec, "http://message-dumper.default.aikas.org/")
 	if err != nil {
 		c.Logger.Infof("Failed to create scheduler job: %s", err)
 		return err
@@ -174,11 +181,11 @@ func (c *Reconciler) createJob(name string, spec *v1alpha1.CloudSchedulerSourceS
 	}
 
 	parent := fmt.Sprintf("projects/%s/locations/%s", spec.GoogleCloudProject, spec.Location)
-	name := fmt.Sprintf("%s/jobs/%s", parent, name)
+	jobName := fmt.Sprintf("%s/jobs/%s", parent, name)
 	req := &schedulerpb.CreateJobRequest{
 		Parent: parent,
 		Job: &schedulerpb.Job{
-			Name:     name,
+			Name:     jobName,
 			Schedule: spec.Schedule,
 			TimeZone: timezone,
 			Target: &schedulerpb.Job_HttpTarget{

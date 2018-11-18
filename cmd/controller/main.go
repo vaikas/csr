@@ -24,6 +24,7 @@ import (
 	"github.com/knative/pkg/controller"
 	"github.com/knative/pkg/logging"
 	"github.com/knative/pkg/signals"
+	"k8s.io/client-go/dynamic"
 	kubeinformers "k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
@@ -63,6 +64,11 @@ func main() {
 		logger.Fatalf("Error building kubernetes clientset: %s", err.Error())
 	}
 
+	dynamicClient, err := dynamic.NewForConfig(cfg)
+	if err != nil {
+		logger.Fatalf("Error building dynamic client: %s", err.Error())
+	}
+
 	cloudSchedulerSourceClient, err := clientset.NewForConfig(cfg)
 	if err != nil {
 		logger.Fatalf("Error building cloudSchedulerSource clientset: %s", err.Error())
@@ -79,6 +85,7 @@ func main() {
 		cloudschedulersource.NewController(
 			logger,
 			kubeClient,
+			dynamicClient,
 			cloudSchedulerSourceClient,
 			cloudSchedulerSourceInformer,
 			*raImage,

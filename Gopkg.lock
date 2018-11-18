@@ -20,6 +20,14 @@
   revision = "782f4967f2dc4564575ca782fe2d04090b5faca8"
 
 [[projects]]
+  digest = "1:32598368f409bbee79deb9d43569fcd92b9fb27f39155f5e166b3371217f051f"
+  name = "github.com/evanphx/json-patch"
+  packages = ["."]
+  pruneopts = "NUT"
+  revision = "72bf35d0ff611848c1dc9df0f976c81192392fa5"
+  version = "v4.1.0"
+
+[[projects]]
   digest = "1:abfe129dc92b16fbf0cc9d6336096a2823151756f62072a700eb10754141b38e"
   name = "github.com/ghodss/yaml"
   packages = ["."]
@@ -160,10 +168,12 @@
   revision = "5c1d8c8469d1ed34b2aecf4c2305b3a57fff2ee3"
 
 [[projects]]
-  branch = "master"
-  digest = "1:fa1c1ab9e2d3eab90c4451abb70ecf60c3a4154c3f3ac249329e164df00285b8"
+  digest = "1:ae93f8409c23ce100d2502d21ea9c8524b9da288e1c2e2fd99c506373a501140"
   name = "github.com/knative/pkg"
   packages = [
+    "apis",
+    "apis/duck",
+    "apis/duck/v1alpha1",
     "changeset",
     "cloudevents",
     "controller",
@@ -185,6 +195,14 @@
   pruneopts = "NUT"
   revision = "37c640555a3241ed707962ba6b29d6c7fe68f937"
   version = "v0.1.1"
+
+[[projects]]
+  branch = "master"
+  digest = "1:0e9bfc47ab9941ecc3344e580baca5deb4091177e84dd9773b48b38ec26b93d5"
+  name = "github.com/mattbaird/jsonpatch"
+  packages = ["."]
+  pruneopts = "NUT"
+  revision = "81af80346b1a01caae0cbc27fd3c1ba5b11e189f"
 
 [[projects]]
   digest = "1:2f42fa12d6911c7b7659738758631bec870b7e9b4c6be5444f963cdcfccc191f"
@@ -554,11 +572,12 @@
   version = "kubernetes-1.11.3"
 
 [[projects]]
-  digest = "1:4e0ad2e0e0fc529cec3f0723d94b4553cbad1dc6bce3ea80f067e35e440c0983"
+  digest = "1:d65902c5ab31ec68e40f7494cb8595c9db78f62500344adc3309a7d61ae5b7ba"
   name = "k8s.io/client-go"
   packages = [
     "discovery",
     "discovery/fake",
+    "dynamic",
     "informers",
     "informers/admissionregistration",
     "informers/admissionregistration/v1alpha1",
@@ -663,6 +682,7 @@
     "plugin/pkg/client/auth/exec",
     "rest",
     "rest/watch",
+    "restmapper",
     "testing",
     "tools/auth",
     "tools/cache",
@@ -740,12 +760,26 @@
   pruneopts = "NUT"
   revision = "e3762e86a74c878ffed47484592986685639c2cd"
 
+[[projects]]
+  digest = "1:8131554e28cf80cddfaceaf2339153db5985a12a3da2187c80cc59149f21ee0c"
+  name = "sigs.k8s.io/controller-runtime"
+  packages = [
+    "pkg/client",
+    "pkg/client/apiutil",
+  ]
+  pruneopts = "NUT"
+  revision = "5fd1e9e9fac5261e9ad9d47c375afc014fc31d21"
+  version = "v0.1.7"
+
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
     "cloud.google.com/go/scheduler/apiv1beta1",
     "github.com/google/uuid",
+    "github.com/knative/pkg/apis",
+    "github.com/knative/pkg/apis/duck",
+    "github.com/knative/pkg/apis/duck/v1alpha1",
     "github.com/knative/pkg/cloudevents",
     "github.com/knative/pkg/controller",
     "github.com/knative/pkg/logging",
@@ -767,11 +801,10 @@
     "k8s.io/apimachinery/pkg/watch",
     "k8s.io/client-go/discovery",
     "k8s.io/client-go/discovery/fake",
+    "k8s.io/client-go/dynamic",
     "k8s.io/client-go/informers",
-    "k8s.io/client-go/informers/extensions/v1beta1",
     "k8s.io/client-go/kubernetes",
     "k8s.io/client-go/kubernetes/scheme",
-    "k8s.io/client-go/listers/extensions/v1beta1",
     "k8s.io/client-go/rest",
     "k8s.io/client-go/testing",
     "k8s.io/client-go/tools/cache",
@@ -782,6 +815,7 @@
     "k8s.io/code-generator/cmd/defaulter-gen",
     "k8s.io/code-generator/cmd/informer-gen",
     "k8s.io/code-generator/cmd/lister-gen",
+    "sigs.k8s.io/controller-runtime/pkg/client",
   ]
   solver-name = "gps-cdcl"
   solver-version = 1

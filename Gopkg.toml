@@ -10,7 +10,7 @@ required = [
   "k8s.io/code-generator/cmd/informer-gen"
 ]
 
-[[constraint]]
+[[override]]
   name = "k8s.io/client-go"
   version = "kubernetes-1.11.3"
 
@@ -22,9 +22,9 @@ required = [
   name = "k8s.io/api"
   version = "kubernetes-1.11.3"
 
-#[[constraint]]
-#  name = "github.com/knative/pkg"
-#  revision = "3e52d67e3d58f63f43ad61241b00a9974cb03ecd"
+[[override]]
+  name = "github.com/knative/pkg"
+  revision = "3e52d67e3d58f63f43ad61241b00a9974cb03ecd"
 
 [[override]]
   name = "github.com/json-iterator/go"
