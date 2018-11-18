@@ -45,11 +45,12 @@
   revision = "c0656edd0d9eab7c66d1eb0c568f9039345796f7"
 
 [[projects]]
-  digest = "1:78b8040ece2ff622580def2708b9eb0b2857711b6744c475439bf337e9c677ea"
+  branch = "master"
+  digest = "1:e2b86e41f3d669fc36b50d31d32d22c8ac656c75aa5ea89717ce7177e134ff2a"
   name = "github.com/golang/glog"
   packages = ["."]
   pruneopts = "NUT"
-  revision = "44145f04b68cf362d9c4df2182967c2275eaefed"
+  revision = "23def4e6c14b4da8ac2ed8007337bc5eb5007998"
 
 [[projects]]
   digest = "1:3e36e8484c10d3110e4bc846e255d360b3f4721fcaaf1877db2992640e1ab924"
@@ -186,11 +187,17 @@
   revision = "3e52d67e3d58f63f43ad61241b00a9974cb03ecd"
 
 [[projects]]
-  digest = "1:38c165470f72f1114bde1fa42c555bab5883ab685c95ff32d4f74a1fddeddea1"
+  digest = "1:63f3974f3afe3dc5b6a115c0d53b0897cd01be6880c4bf5d014fc69a95db6ed1"
   name = "github.com/knative/serving"
   packages = [
+    "pkg/apis/istio",
+    "pkg/apis/istio/v1alpha3",
     "pkg/apis/serving",
     "pkg/apis/serving/v1alpha1",
+    "pkg/client/clientset/versioned",
+    "pkg/client/clientset/versioned/scheme",
+    "pkg/client/clientset/versioned/typed/istio/v1alpha3",
+    "pkg/client/clientset/versioned/typed/serving/v1alpha1",
   ]
   pruneopts = "NUT"
   revision = "37c640555a3241ed707962ba6b29d6c7fe68f937"
@@ -572,7 +579,7 @@
   version = "kubernetes-1.11.3"
 
 [[projects]]
-  digest = "1:d65902c5ab31ec68e40f7494cb8595c9db78f62500344adc3309a7d61ae5b7ba"
+  digest = "1:7e5c6f27f30657dddea35bcf6b5417a384f4047a69f010c0f11b85caf7201336"
   name = "k8s.io/client-go"
   packages = [
     "discovery",
@@ -682,7 +689,6 @@
     "plugin/pkg/client/auth/exec",
     "rest",
     "rest/watch",
-    "restmapper",
     "testing",
     "tools/auth",
     "tools/cache",
@@ -760,17 +766,6 @@
   pruneopts = "NUT"
   revision = "e3762e86a74c878ffed47484592986685639c2cd"
 
-[[projects]]
-  digest = "1:8131554e28cf80cddfaceaf2339153db5985a12a3da2187c80cc59149f21ee0c"
-  name = "sigs.k8s.io/controller-runtime"
-  packages = [
-    "pkg/client",
-    "pkg/client/apiutil",
-  ]
-  pruneopts = "NUT"
-  revision = "5fd1e9e9fac5261e9ad9d47c375afc014fc31d21"
-  version = "v0.1.7"
-
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
@@ -786,6 +781,7 @@
     "github.com/knative/pkg/logging/logkey",
     "github.com/knative/pkg/signals",
     "github.com/knative/serving/pkg/apis/serving/v1alpha1",
+    "github.com/knative/serving/pkg/client/clientset/versioned",
     "go.uber.org/zap",
     "google.golang.org/genproto/googleapis/cloud/scheduler/v1beta1",
     "k8s.io/api/core/v1",
@@ -815,7 +811,6 @@
     "k8s.io/code-generator/cmd/defaulter-gen",
     "k8s.io/code-generator/cmd/informer-gen",
     "k8s.io/code-generator/cmd/lister-gen",
-    "sigs.k8s.io/controller-runtime/pkg/client",
   ]
   solver-name = "gps-cdcl"
   solver-version = 1

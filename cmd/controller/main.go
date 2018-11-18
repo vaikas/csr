@@ -30,6 +30,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/clientcmd"
 
+	servingclientset "github.com/knative/serving/pkg/client/clientset/versioned"
 	clientset "github.com/vaikas-google/csr/pkg/client/clientset/versioned"
 	informers "github.com/vaikas-google/csr/pkg/client/informers/externalversions"
 	"github.com/vaikas-google/csr/pkg/reconciler/cloudschedulersource"
@@ -74,6 +75,11 @@ func main() {
 		logger.Fatalf("Error building cloudSchedulerSource clientset: %s", err.Error())
 	}
 
+	servingClient, err := servingclientset.NewForConfig(cfg)
+	if err != nil {
+		logger.Fatalf("Error building serving clientset: %s", err.Error())
+	}
+
 	kubeInformerFactory := kubeinformers.NewSharedInformerFactory(kubeClient, time.Second*30)
 	cloudSchedulerSourceInformerFactory := informers.NewSharedInformerFactory(cloudSchedulerSourceClient, time.Second*30)
 
@@ -88,6 +94,7 @@ func main() {
 			dynamicClient,
 			cloudSchedulerSourceClient,
 			cloudSchedulerSourceInformer,
+			servingClient,
 			*raImage,
 		),
 	}
