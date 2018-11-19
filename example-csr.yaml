@@ -1,0 +1,16 @@
+# Replace the following before applying this file:
+#   MY_GCP_PROJECT: Replace with the GCP Project's ID.
+
+apiVersion: sources.aikas.org/v1alpha1
+kind: CloudSchedulerSource
+metadata:
+  name: scheduler-test
+spec:
+  googleCloudProject: MY_GCP_PROJECT
+  location: us-central1
+  schedule: "every 1 mins"
+  body: "{test does this work}"
+  sink:
+    apiVersion: eventing.knative.dev/v1alpha1
+    kind: Channel
+    name: scheduler-demo
