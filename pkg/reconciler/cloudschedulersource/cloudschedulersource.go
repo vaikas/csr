@@ -28,12 +28,11 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/cache"
-	//	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"cloud.google.com/go/scheduler/apiv1beta1"
-	//	servingv1alpha1
-	//	"github.com/knative/serving/pkg/apis/serving/v1alpha1"
+	servingv1alpha1 "github.com/knative/serving/pkg/apis/serving/v1alpha1"
 	servingclientset "github.com/knative/serving/pkg/client/clientset/versioned"
+	servinginformers "github.com/knative/serving/pkg/client/informers/externalversions/serving/v1alpha1"
 	"github.com/vaikas-google/csr/pkg/apis/cloudschedulersource/v1alpha1"
 	clientset "github.com/vaikas-google/csr/pkg/client/clientset/versioned"
 	cloudschedulersourcescheme "github.com/vaikas-google/csr/pkg/client/clientset/versioned/scheme"
@@ -41,10 +40,16 @@ import (
 	listers "github.com/vaikas-google/csr/pkg/client/listers/cloudschedulersource/v1alpha1"
 	"github.com/vaikas-google/csr/pkg/reconciler/cloudschedulersource/resources"
 	schedulerpb "google.golang.org/genproto/googleapis/cloud/scheduler/v1beta1"
+	"google.golang.org/grpc/codes"
+	gstatus "google.golang.org/grpc/status"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/dynamic"
 )
 
-const controllerAgentName = "cloudschedulersource-controller"
+const (
+	controllerAgentName = "cloudschedulersource-controller"
+	finalizerName       = controllerAgentName
+)
 
 // Reconciler is the controller implementation for Cloudschedulersource resources
 type Reconciler struct {
@@ -52,14 +57,16 @@ type Reconciler struct {
 	kubeclientset kubernetes.Interface
 	// cloudschedulersourceclientset is a clientset for our own API group
 	cloudschedulersourceclientset clientset.Interface
+	cloudschedulersourcesLister   listers.CloudSchedulerSourceLister
 
-	cloudschedulersourcesLister listers.CloudSchedulerSourceLister
-
+	// We use dynamic client for Duck type related stuff.
 	dynamicClient dynamic.Interface
-	//	client        client.Client
 
-	servingClient servingclientset.Interface
+	// For dealing with Service.serving.knative.dev
+	servingClient   servingclientset.Interface
+	servingInformer servinginformers.ServiceInformer
 
+	// Receive Adapter Image.
 	raImage string
 
 	// Sugared logger is easier to use but is not as performant as the
@@ -87,7 +94,7 @@ func NewController(
 	cloudschedulersourceclientset clientset.Interface,
 	cloudschedulersourceInformer informers.CloudSchedulerSourceInformer,
 	servingclientset servingclientset.Interface,
-	//	servingsourceInformer informers.CloudSchedulerSourceInformer,
+	servingsourceInformer servinginformers.ServiceInformer,
 	raImage string,
 ) *controller.Impl {
 
@@ -110,10 +117,18 @@ func NewController(
 	impl := controller.NewImpl(r, logger, "CloudSchedulerSources", statsExporter)
 
 	logger.Info("Setting up event handlers")
+
 	// Set up an event handler for when CloudSchedulerSource resources change
 	cloudschedulersourceInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc:    impl.Enqueue,
 		UpdateFunc: controller.PassNew(impl.Enqueue),
+	})
+
+	// Set up an event handler for when CloudSchedulerSource owned Service resources change.
+	// Basically whenever a Service controlled by us is chaned, we want to know about it.
+	cloudschedulersourceInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
+		AddFunc:    impl.EnqueueControllerOf,
+		UpdateFunc: controller.PassNew(impl.EnqueueControllerOf),
 	})
 
 	return impl
@@ -145,8 +160,6 @@ func (c *Reconciler) Reconcile(ctx context.Context, key string) error {
 	return nil
 }
 
-//, "http://message-dumper.default.aikas.org/"
-
 func (c *Reconciler) reconcileCloudSchedulerSource(ctx context.Context, csr *v1alpha1.CloudSchedulerSource) error {
 	// First try to resolve the sink, and if not found mark as not resolved.
 	uri, err := GetSinkURI(c.dynamicClient, csr.Spec.Sink, csr.Namespace)
@@ -159,31 +172,78 @@ func (c *Reconciler) reconcileCloudSchedulerSource(ctx context.Context, csr *v1a
 	c.Logger.Infof("Resolved Sink URI to %q", uri)
 	csr.Status.SinkURI = uri
 
-	ksvc := resources.MakeService(csr, c.raImage)
-	c.Logger.Infof("Would create service %+v", ksvc)
-
-	createdSvc, err := c.servingClient.ServingV1alpha1().Services(csr.Namespace).Create(ksvc)
+	// Make sure Service is in the state we expect it to be in.
+	ksvc, err := c.reconcileService(csr)
 	if err != nil {
-		c.Logger.Infof("Service creation failed: %s", err)
+		c.Logger.Infof("Failed to reconcile service: %s", err)
+		return err
+	}
+	c.Logger.Infof("Reconciled service: %+v", ksvc)
+
+	if ksvc.Status.Domain == "" {
+		c.Logger.Infof("No domain configured for service, bailing...")
+		return fmt.Errorf("No domain configured for service")
+	}
+
+	url := fmt.Sprintf("http://%s/", ksvc.Status.Domain)
+	c.Logger.Infof("using %s as a cluster sink", url)
+
+	job, err := c.reconcileJob(csr.Name, &csr.Spec, url)
+	if err != nil {
+		c.Logger.Infof("Failed to reconcile Job: %s", err)
 		return err
 	}
 
-	c.Logger.Infof("Created service: %+v", createdSvc)
+	c.Logger.Infof("Created job: %+v", job)
 
-	c.Logger.Infof("creating scheduler job")
-	err = c.createJob(csr.Name, &csr.Spec, "http://message-dumper.default.aikas.org/")
-	if err != nil {
-		c.Logger.Infof("Failed to create scheduler job: %s", err)
-		return err
-	}
+	// TODO: Check the status diff and update...
 	return nil
 }
 
-func (c *Reconciler) createJob(name string, spec *v1alpha1.CloudSchedulerSourceSpec, target string) error {
+func (c *Reconciler) reconcileService(csr *v1alpha1.CloudSchedulerSource) (*servingv1alpha1.Service, error) {
+	svcClient := c.servingClient.ServingV1alpha1().Services(csr.Namespace)
+	existing, err := svcClient.Get(csr.Name, v1.GetOptions{})
+	if err == nil {
+		// TODO: Handle any updates...
+		c.Logger.Infof("Found existing service: %+v", existing)
+		return existing, nil
+	}
+	if errors.IsNotFound(err) {
+		ksvc := resources.MakeService(csr, c.raImage)
+		c.Logger.Infof("Creating service %+v", ksvc)
+		return c.servingClient.ServingV1alpha1().Services(csr.Namespace).Create(ksvc)
+	}
+	return nil, err
+}
+
+func (c *Reconciler) reconcileJob(name string, spec *v1alpha1.CloudSchedulerSourceSpec, target string) (*schedulerpb.Job, error) {
+	parent := fmt.Sprintf("projects/%s/locations/%s", spec.GoogleCloudProject, spec.Location)
+	jobName := fmt.Sprintf("%s/jobs/%s", parent, name)
+
+	c.Logger.Infof("Parent: %q Job: %q", parent, jobName)
+
 	ctx := context.Background()
 	csc, err := scheduler.NewCloudSchedulerClient(ctx)
 	if err != nil {
-		return err
+		return nil, err
+	}
+
+	getReq := &schedulerpb.GetJobRequest{
+		Name: jobName,
+	}
+
+	existing, err := csc.GetJob(ctx, getReq)
+	if err == nil {
+		// TODO: This should reconcile properly... Update as necessary, etc...
+		c.Logger.Infof("Found existing job as: %+v", getReq)
+		return existing, nil
+	}
+
+	if st, ok := gstatus.FromError(err); !ok {
+		c.Logger.Infof("Unknown error from the cloud scheduler client: %s", err)
+		return nil, err
+	} else if st.Code() != codes.NotFound {
+		return nil, err
 	}
 
 	timezone := "UTC"
@@ -191,8 +251,6 @@ func (c *Reconciler) createJob(name string, spec *v1alpha1.CloudSchedulerSourceS
 		timezone = spec.TimeZone
 	}
 
-	parent := fmt.Sprintf("projects/%s/locations/%s", spec.GoogleCloudProject, spec.Location)
-	jobName := fmt.Sprintf("%s/jobs/%s", parent, name)
 	req := &schedulerpb.CreateJobRequest{
 		Parent: parent,
 		Job: &schedulerpb.Job{
@@ -210,9 +268,9 @@ func (c *Reconciler) createJob(name string, spec *v1alpha1.CloudSchedulerSourceS
 	c.Logger.Infof("Creating job as: %+v", req)
 	resp, err := csc.CreateJob(ctx, req)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	// TODO: Use resp.
 	c.Logger.Infof("Created job %+v", resp)
-	return nil
+	return resp, nil
 }

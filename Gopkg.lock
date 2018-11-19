@@ -187,7 +187,7 @@
   revision = "3e52d67e3d58f63f43ad61241b00a9974cb03ecd"
 
 [[projects]]
-  digest = "1:63f3974f3afe3dc5b6a115c0d53b0897cd01be6880c4bf5d014fc69a95db6ed1"
+  digest = "1:07e99c5d7a11f4c0d768fef69fb53999ce38b9e359ae039057b7ff10f959bb76"
   name = "github.com/knative/serving"
   packages = [
     "pkg/apis/istio",
@@ -198,6 +198,14 @@
     "pkg/client/clientset/versioned/scheme",
     "pkg/client/clientset/versioned/typed/istio/v1alpha3",
     "pkg/client/clientset/versioned/typed/serving/v1alpha1",
+    "pkg/client/informers/externalversions",
+    "pkg/client/informers/externalversions/internalinterfaces",
+    "pkg/client/informers/externalversions/istio",
+    "pkg/client/informers/externalversions/istio/v1alpha3",
+    "pkg/client/informers/externalversions/serving",
+    "pkg/client/informers/externalversions/serving/v1alpha1",
+    "pkg/client/listers/istio/v1alpha3",
+    "pkg/client/listers/serving/v1alpha1",
   ]
   pruneopts = "NUT"
   revision = "37c640555a3241ed707962ba6b29d6c7fe68f937"
@@ -782,6 +790,8 @@
     "github.com/knative/pkg/signals",
     "github.com/knative/serving/pkg/apis/serving/v1alpha1",
     "github.com/knative/serving/pkg/client/clientset/versioned",
+    "github.com/knative/serving/pkg/client/informers/externalversions",
+    "github.com/knative/serving/pkg/client/informers/externalversions/serving/v1alpha1",
     "go.uber.org/zap",
     "google.golang.org/genproto/googleapis/cloud/scheduler/v1beta1",
     "k8s.io/api/core/v1",

@@ -26,8 +26,8 @@ import (
 	"github.com/vaikas-google/csr/pkg/apis/cloudschedulersource/v1alpha1"
 )
 
-// MakeService generates, but does not create, a Service for the given
-// GitHubSource.
+// MakeService creates the spec for, but does not create, a Service
+// (Receive Adapter) for a given CloudSchedulerSource.
 func MakeService(source *v1alpha1.CloudSchedulerSource, receiveAdapterImage string) *servingv1alpha1.Service {
 	labels := map[string]string{
 		"receive-adapter": "cloudschedulersource",
@@ -42,9 +42,9 @@ func MakeService(source *v1alpha1.CloudSchedulerSource, receiveAdapterImage stri
 	containerArgs := []string{fmt.Sprintf("--sink=%s", sinkURI)}
 	return &servingv1alpha1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			GenerateName: fmt.Sprintf("%s-", source.Name),
-			Namespace:    source.Namespace,
-			Labels:       labels,
+			Name:      source.Name,
+			Namespace: source.Namespace,
+			Labels:    labels,
 		},
 		Spec: servingv1alpha1.ServiceSpec{
 			RunLatest: &servingv1alpha1.RunLatestType{
