@@ -31,6 +31,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 
 	servingclientset "github.com/knative/serving/pkg/client/clientset/versioned"
+	servinginformers "github.com/knative/serving/pkg/client/informers/externalversions"
 	clientset "github.com/vaikas-google/csr/pkg/client/clientset/versioned"
 	informers "github.com/vaikas-google/csr/pkg/client/informers/externalversions"
 	"github.com/vaikas-google/csr/pkg/reconciler/cloudschedulersource"
@@ -86,6 +87,9 @@ func main() {
 	// obtain a reference to a shared index informer for the CloudSchedulerSource type.
 	cloudSchedulerSourceInformer := cloudSchedulerSourceInformerFactory.Sources().V1alpha1().CloudSchedulerSources()
 
+	servingInformerFactory := servinginformers.NewSharedInformerFactory(servingClient, time.Second*30)
+	servingInformer := servingInformerFactory.Serving().V1alpha1().Services()
+
 	// Add new controllers here.
 	controllers := []*controller.Impl{
 		cloudschedulersource.NewController(
@@ -95,6 +99,7 @@ func main() {
 			cloudSchedulerSourceClient,
 			cloudSchedulerSourceInformer,
 			servingClient,
+			servingInformer,
 			*raImage,
 		),
 	}
