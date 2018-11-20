@@ -41,6 +41,12 @@ Another purpose is to serve as an example of how to build an Event Source using 
 
 1. Setup [Knative Serving](https://github.com/knative/docs/blob/master/install)
 
+2. Configure [static IP](https://github.com/knative/docs/blob/master/serving/gke-assigning-static-ip-address.md)
+
+1. Configure [custom dns](https://github.com/knative/docs/blob/master/serving/using-a-custom-domain.md)
+
+1. Configure [outbound network access](https://github.com/knative/docs/blob/master/serving/outbound-network-access.md)
+
 1. Setup [Knative Eventing](https://github.com/knative/docs/tree/master/eventing)
    using the `release.yaml` file. This example does not require GCP.
 
