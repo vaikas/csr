@@ -19,6 +19,7 @@ package resources
 import (
 	"fmt"
 
+	"github.com/knative/pkg/kmeta"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -45,6 +46,9 @@ func MakeService(source *v1alpha1.CloudSchedulerSource, receiveAdapterImage stri
 			Name:      source.Name,
 			Namespace: source.Namespace,
 			Labels:    labels,
+			OwnerReferences: []metav1.OwnerReference{
+				*kmeta.NewControllerRef(source),
+			},
 		},
 		Spec: servingv1alpha1.ServiceSpec{
 			RunLatest: &servingv1alpha1.RunLatestType{

@@ -106,17 +106,20 @@ func main() {
 
 	go kubeInformerFactory.Start(stopCh)
 	go cloudSchedulerSourceInformerFactory.Start(stopCh)
+	go servingInformerFactory.Start(stopCh)
 
 	// Wait for the caches to be synced before starting controllers.
 	logger.Info("Waiting for informer caches to sync")
 	for i, synced := range []cache.InformerSynced{
 		cloudSchedulerSourceInformer.Informer().HasSynced,
+		servingInformer.Informer().HasSynced,
 	} {
 		if ok := cache.WaitForCacheSync(stopCh, synced); !ok {
 			logger.Fatalf("failed to wait for cache at index %v to sync", i)
 		}
 	}
 
+	logger.Info("Starting controllers...")
 	// Start all of the controllers.
 	for _, ctrlr := range controllers {
 		go func(ctrlr *controller.Impl) {
