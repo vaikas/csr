@@ -100,24 +100,30 @@ Another purpose is to serve as an example of how to build an Event Source using 
 ## Install Cloud Scheduler Source
 
 ```shell
-ko apply -f ./config
+kubectl apply -f https://raw.githubusercontent.com/vaikas-google/csr/master/release.yaml
 ```
 
 
 ## Create a channel the events are sent to
 ```shell
-kubectl apply -f ./channel.yaml
+kubectl apply -f https://raw.githubusercontent.com/vaikas-google/csr/master/channel.yaml
 ```
 
 ## Create a consumer for the events
 ```shell
-ko apply -f ./subscription.yaml
+kubectl apply -f https://raw.githubusercontent.com/vaikas-google/csr/master/subscription.yaml
 ```
 
 ## Wire Cloud Scheduler Events to the function 
-First replace MY_GCP_PROJECT with your project id in example-csr.yaml, then create it.
+Download the following file to your local file system, save it for example as `subscription.yaml`.
+For example with curl:
 ```shell
-kubectl apply -f ./example-csr.yaml
+curl -o ./subscription.yaml https://raw.githubusercontent.com/vaikas-google/csr/master/subscription.yaml
+```
+
+Then replace MY_GCP_PROJECT with your project id in example-csr.yaml, then deploy it with.
+```shell
+kubectl apply -f ./subscription.yaml
 ```
 
 ## Check that the Cloud Scheduler Job was created

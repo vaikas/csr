@@ -16,12 +16,12 @@ spec:
         - name: GOOGLE_APPLICATION_CREDENTIALS
           value: /var/secrets/google/key.json
         name: cloudschedulersource-controller
-        image: github.com/vaikas-google/csr/cmd/controller
+        image: us.gcr.io/probable-summer-223122/controller
         args:
         - "-logtostderr=true"
         - "-stderrthreshold=INFO"
         - "-raimage"
-        - "github.com/vaikas-google/csr/cmd/receiveadapter"
+        - "us.gcr.io/probable-summer-223122/receiveadapter"
         volumeMounts:
         - mountPath: /var/secrets/google
           name: google-cloud-key
