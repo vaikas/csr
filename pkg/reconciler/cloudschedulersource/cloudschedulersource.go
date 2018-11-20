@@ -129,7 +129,7 @@ func NewController(
 
 	// Set up an event handler for when CloudSchedulerSource owned Service resources change.
 	// Basically whenever a Service controlled by us is chaned, we want to know about it.
-	cloudschedulersourceInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
+	servingsourceInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc:    impl.EnqueueControllerOf,
 		UpdateFunc: controller.PassNew(impl.EnqueueControllerOf),
 		DeleteFunc: impl.EnqueueControllerOf,
