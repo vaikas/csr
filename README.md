@@ -193,11 +193,34 @@ scheduler-test   4m
 
 ### Updating
 
-You can's upgrade `foo.yaml` jobs yet because the reconciler doesn't work yet :(
+You can upgrade `foo.yaml` jobs by updating the spec. For example, say you
+wanted to change the above job to send a different body, you'd update
+the foo.yaml from above like so:
+
+```yaml
+apiVersion: sources.aikas.org/v1alpha1
+kind: CloudSchedulerSource
+metadata:
+  name: scheduler-test
+spec:
+  googleCloudProject: quantum-reducer-434
+  location: us-central1
+  schedule: "every 1 mins"
+  body: "{test does this work, hopefully this does too}"
+  sink:
+    apiVersion: eventing.knative.dev/v1alpha1
+    kind: Channel
+    name: scheduler-demo
+```
+
 But if it did, you'd do:
 ```shell
 kubectl replace -f foo.yaml
 ```
+
+And on the next run (or so) the body send to your function will
+by changed to '{test does this work, hopefully this does too}'
+instead of '{test does this work}' like before.
 
 ### Removing
 
