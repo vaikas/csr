@@ -31,4 +31,4 @@ spec:
       revisionTemplate:
         spec:
           container:
-            image: github.com/vaikas-google/csr/cmd/messagedumper
+            image: us.gcr.io/probable-summer-223122/messagedumper

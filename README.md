@@ -100,7 +100,7 @@ Another purpose is to serve as an example of how to build an Event Source using 
 ## Install Cloud Scheduler Source
 
 ```shell
-ko apply -f ./config
+kubectl apply -f https://github.com/vaikas-google/csr/blob/master/release.yaml
 ```
 
 
@@ -111,7 +111,7 @@ kubectl apply -f ./channel.yaml
 
 ## Create a consumer for the events
 ```shell
-ko apply -f ./subscription.yaml
+kubectl apply -f https://github.com/vaikas-google/csr/blob/master/subscription.yaml
 ```
 
 ## Wire Cloud Scheduler Events to the function 
