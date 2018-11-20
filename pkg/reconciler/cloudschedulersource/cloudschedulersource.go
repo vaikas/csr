@@ -17,6 +17,7 @@ limitations under the License.
 package cloudschedulersource
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"reflect"
@@ -180,6 +181,7 @@ func (c *Reconciler) reconcileCloudSchedulerSource(ctx context.Context, csr *v1a
 	// First try to resolve the sink, and if not found mark as not resolved.
 	uri, err := GetSinkURI(c.dynamicClient, csr.Spec.Sink, csr.Namespace)
 	if err != nil {
+		// TODO: Update status appropriately
 		//		csr.Status.MarkNoSink("NotFound", "%s", err)
 		c.Logger.Infof("Couldn't resolve Sink URI: %s", err)
 		return err
@@ -205,12 +207,14 @@ func (c *Reconciler) reconcileCloudSchedulerSource(ctx context.Context, csr *v1a
 	// Make sure Service is in the state we expect it to be in.
 	ksvc, err := c.reconcileService(csr)
 	if err != nil {
+		// TODO: Update status appropriately
 		c.Logger.Infof("Failed to reconcile service: %s", err)
 		return err
 	}
 	c.Logger.Infof("Reconciled service: %+v", ksvc)
 
 	if ksvc.Status.Domain == "" {
+		// TODO: Update status appropriately
 		c.Logger.Infof("No domain configured for service, bailing...")
 		return fmt.Errorf("No domain configured for service")
 	}
@@ -220,13 +224,14 @@ func (c *Reconciler) reconcileCloudSchedulerSource(ctx context.Context, csr *v1a
 
 	job, err := c.reconcileJob(csr.Name, &csr.Spec, url)
 	if err != nil {
+		// TODO: Update status with this...
 		c.Logger.Infof("Failed to reconcile Job: %s", err)
 		return err
 	}
 
-	c.Logger.Infof("Created job: %+v", job)
+	c.Logger.Infof("Reconciled job: %+v", job)
+	csr.Status.Job = job.Name
 
-	// TODO: Check the status diff and update...
 	return nil
 }
 
@@ -264,8 +269,32 @@ func (c *Reconciler) reconcileJob(name string, spec *v1alpha1.CloudSchedulerSour
 
 	existing, err := csc.GetJob(ctx, getReq)
 	if err == nil {
-		// TODO: This should reconcile properly... Update as necessary, etc...
 		c.Logger.Infof("Found existing job as: %+v", existing)
+
+		existingHttpTarget := existing.GetHttpTarget()
+		if existingHttpTarget == nil {
+			return nil, fmt.Errorf("Missing http target in the existing scheduler proto: %+v", existing)
+		}
+
+		updated := createJobProto(jobName, spec, target)
+		updatedHttpTarget := updated.GetHttpTarget()
+		if updatedHttpTarget == nil {
+			return nil, fmt.Errorf("Missing http target in the updated scheduler proto: %+v", updated)
+		}
+		if updated.Schedule != existing.Schedule ||
+			updated.TimeZone != existing.TimeZone ||
+			bytes.Compare(updatedHttpTarget.Body, existingHttpTarget.Body) != 0 ||
+			updatedHttpTarget.HttpMethod != existingHttpTarget.HttpMethod {
+			req := &schedulerpb.UpdateJobRequest{
+				Job: updated,
+			}
+			c.Logger.Info("Updating Job spec with %+v", req)
+			resp, err := csc.UpdateJob(ctx, req)
+			if err != nil {
+				return nil, err
+			}
+			return resp, nil
+		}
 		return existing, nil
 	}
 
@@ -276,25 +305,11 @@ func (c *Reconciler) reconcileJob(name string, spec *v1alpha1.CloudSchedulerSour
 		return nil, err
 	}
 
-	timezone := "UTC"
-	if spec.TimeZone != "" {
-		timezone = spec.TimeZone
-	}
-
 	req := &schedulerpb.CreateJobRequest{
 		Parent: parent,
-		Job: &schedulerpb.Job{
-			Name:     jobName,
-			Schedule: spec.Schedule,
-			TimeZone: timezone,
-			Target: &schedulerpb.Job_HttpTarget{
-				HttpTarget: &schedulerpb.HttpTarget{
-					Uri:        target,
-					HttpMethod: schedulerpb.HttpMethod_POST,
-				},
-			},
-		},
+		Job:    createJobProto(name, spec, target),
 	}
+
 	c.Logger.Infof("Creating job as: %+v", req)
 	resp, err := csc.CreateJob(ctx, req)
 	if err != nil {
@@ -303,6 +318,40 @@ func (c *Reconciler) reconcileJob(name string, spec *v1alpha1.CloudSchedulerSour
 	// TODO: Use resp.
 	c.Logger.Infof("Created job %+v", resp)
 	return resp, nil
+}
+
+func createJobProto(name string, spec *v1alpha1.CloudSchedulerSourceSpec, target string) *schedulerpb.Job {
+	// If no timezone specified, use UTC
+	timezone := "UTC"
+	if spec.TimeZone != "" {
+		timezone = spec.TimeZone
+	}
+
+	// For method, default to POST, otherwise use what's specified and look up the value for it.
+	HttpMethod := schedulerpb.HttpMethod_POST
+	if spec.HTTPMethod != "" {
+		if m, ok := schedulerpb.HttpMethod_value[spec.HTTPMethod]; ok {
+			HttpMethod = schedulerpb.HttpMethod(m)
+		}
+	}
+
+	httpTarget := &schedulerpb.Job_HttpTarget{
+		HttpTarget: &schedulerpb.HttpTarget{
+			Uri:        target,
+			HttpMethod: HttpMethod,
+		},
+	}
+	if spec.Body != "" {
+		httpTarget.HttpTarget.Body = []byte(spec.Body)
+	}
+
+	job := &schedulerpb.Job{
+		Name:     name,
+		Schedule: spec.Schedule,
+		TimeZone: timezone,
+		Target:   httpTarget,
+	}
+	return job
 }
 
 func (c *Reconciler) deleteJob(csr *v1alpha1.CloudSchedulerSource) error {
