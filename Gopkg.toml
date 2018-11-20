@@ -27,6 +27,16 @@ required = [
   revision = "3e52d67e3d58f63f43ad61241b00a9974cb03ecd"
 
 [[override]]
+  # Based on the version that google.golang.org/genproto depends on at HEAD.
+  name = "github.com/golang/protobuf"
+  version = "v1.2.0"
+
+[[override]]
+  # Based on the version that google.golang.org/genproto depends on at HEAD.
+  name = "golang.org/x/sys"
+  revision = "49385e6e15226593f68b26af201feec29d5bba22"
+
+[[override]]
   name = "github.com/json-iterator/go"
   # This is the commit at which k8s depends on this in 1.11
   # It seems to be broken at HEAD.
