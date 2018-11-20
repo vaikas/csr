@@ -94,13 +94,13 @@ kubectl create -f ./channel.yaml
 
 ## Create a consumer for the events
 ```shell
-ko create -f ./subscription.yaml
+ko apply -f ./subscription.yaml
 ```
 
 ## Wire Cloud Scheduler Events to the function 
 First replace MY_GCP_PROJECT with your project id in example-csr.yaml, then create it.
 ```shell
-ko create -f ./example-csr.yaml
+kubectl apply -f ./example-csr.yaml
 ```
 
 ## Check that the Cloud Scheduler Job was created
