@@ -52,6 +52,11 @@ Another purpose is to serve as an example of how to build an Event Source using 
 
 ## Create a GCP Service Account and a corresponding secret in Kubernetes
 
+1. Enable Google Cloud Scheduler API
+      ```shell
+      gcloud services enable cloudscheduler.googleapis.com
+      ```
+
 1. Create a
    [GCP Service Account](https://console.cloud.google.com/iam-admin/serviceaccounts/project).
    This sample creates one service account for both registration and receiving
@@ -75,6 +80,12 @@ Another purpose is to serve as an example of how to build an Event Source using 
       gcloud iam service-accounts keys create csr-source.json \
         --iam-account=csr-source@$PROJECT_ID.iam.gserviceaccount.com
       ```
+   1. Create a namespace for where the secret is created and where our controller will run
+
+      ```shell
+      kubectl create namespace cloudschedulersource-system
+      ```
+
    1. Create a secret on the kubernetes cluster for the downloaded key. You need
       to store this key in `key.json` in a secret named `gcppubsub-source-key`
 
