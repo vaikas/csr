@@ -1,11 +1,11 @@
-# Kubernetes `Cloud Scheduler Source` CRD.
+# Knative`Cloud Scheduler Source` CRD.
 
 ## Overview
 
-This repository implements an Event Source for (Knative Eventing)[http://github.com/knative/eventing]
+This repository implements an Event Source for [Knative Eventing](http://github.com/knative/eventing)
 defined with a CustomResourceDefinition (CRD). This Event Source represents
-(Google Cloud Scheduler)[https://cloud.google.com/scheduler/]. Point is to demonstrate an Event Source that
-does not live in the (Knative Eventing Sources)[http://github.com/knative/eventing-sources] that can be
+[Google Cloud Scheduler](https://cloud.google.com/scheduler/). Point is to demonstrate an Event Source that
+does not live in the [Knative Eventing Sources](http://github.com/knative/eventing-sources) that can be
 independently maintained, deployed and so forth.
 
 This particular example demonstrates how to perform basic operations such as:
@@ -27,7 +27,7 @@ Provide an Event Source that allows subscribing to Cloud Scheduler and processin
 in Knative.
 
 Another purpose is to serve as an example of how to build an Event Source using a
-(Kubernetes Sample Controller)[https://github.com/kubernetes/sample-controller] as a starting point.
+[Warm Image[(https://github.com/mattmoor/warm-image) as a starting point.
 
 ## Prerequisites
 
@@ -89,7 +89,7 @@ ko apply -f ./config
 
 ## Create a channel the events are sent to
 ```shell
-kubectl create -f ./channel.yaml
+kubectl apply -f ./channel.yaml
 ```
 
 ## Create a consumer for the events
@@ -110,6 +110,40 @@ gcloud beta scheduler jobs list
 
 Then wait a couple of minutes and you should see events in your message dumper.
 
+## Check that scheduler invoked the function
+Note this might take couple of minutes after the creation while the Scheduler
+gets going
+```shell
+kubectl -l 'serving.knative.dev/service=message-dumper' logs -c user-container
+```
+And you should see an entry like this there
+```shell
+vaikas@penguin:~/projects/go/src/github.com/vaikas-google/csr$ kubectl -l 'serving.knative.dev/service=message-dumper' logs -c user-container
+2018/11/20 16:01:18 Message Dumper received a message: POST / HTTP/1.1
+Host: message-dumper.default.svc.cluster.local
+Accept-Encoding: gzip
+Ce-Cloudeventsversion: 0.1
+Ce-Eventid: 6b8d8507-de08-968a-a4d8-0b155151e632
+Ce-Eventtime: 2018-11-20T16:01:08.817652632Z
+Ce-Eventtype: GoogleCloudScheduler
+Ce-Source: GCPCloudScheduler
+Content-Length: 546
+Content-Type: application/json
+User-Agent: Go-http-client/1.1
+X-B3-Parentspanid: 3d7bf0225241edaf
+X-B3-Sampled: 1
+X-B3-Spanid: 3fc86e7e9ebaad1f
+X-B3-Traceid: ca9174f7729ea465
+X-Envoy-Expected-Rq-Timeout-Ms: 60000
+X-Envoy-Internal: true
+X-Forwarded-For: 127.0.0.1, 127.0.0.1
+X-Forwarded-Proto: http
+X-Request-Id: d484098c-553d-97b7-ae11-014fca1c543f
+
+"UE9TVCAvIEhUVFAvMS4xDQpIb3N0OiBzY2hlZHVsZXItdGVzdC5kZWZhdWx0LmFpa2FzLm9yZw0KQWNjZXB0LUVuY29kaW5nOiBnemlwLGRlZmxhdGUsYnINCkNvbnRlbnQtTGVuZ3RoOiAwDQpVc2VyLUFnZW50OiBHb29nbGUtQ2xvdWQtU2NoZWR1bGVyDQpYLUIzLVNhbXBsZWQ6IDENClgtQjMtU3BhbmlkOiBjM2ZhM2JjNTRkNDMyNDA2DQpYLUIzLVRyYWNlaWQ6IGMzZmEzYmM1NGQ0MzI0MDYNClgtRW52b3ktRXhwZWN0ZWQtUnEtVGltZW91dC1NczogNjAwMDANClgtRW52b3ktSW50ZXJuYWw6IHRydWUNClgtRm9yd2FyZGVkLUZvcjogMTAuMzYuMi4xLCAxMjcuMC4wLjENClgtRm9yd2FyZGVkLVByb3RvOiBodHRwDQpYLVJlcXVlc3QtSWQ6IDZiOGQ4NTA3LWRlMDgtOTY4YS1hNGQ4LTBiMTU1MTUxZTYzMg0KDQo="
+```
+
+
 ### Uninstall
 
 Simply use the same command you used to install, but with `ko delete` instead of `ko apply`.
@@ -118,46 +152,51 @@ Simply use the same command you used to install, but with `ko delete` instead of
 
 ### Specification
 
-The specification for an image to "warm up" looks like:
+The specification for a scheduler job looks like:
 ```yaml
-apiVersion: mattmoor.io/v2
-kind: WarmImage
+apiVersion: sources.aikas.org/v1alpha1
+kind: CloudSchedulerSource
 metadata:
-  name: example-warmimage
+  name: scheduler-test
 spec:
-  image: gcr.io/google-appengine/debian8:latest
-  # Optionally:
-  # imagePullSecrets: 
-  # - name: foo
+  googleCloudProject: quantum-reducer-434
+  location: us-central1
+  schedule: "every 1 mins"
+  body: "{test does this work}"
+  sink:
+    apiVersion: eventing.knative.dev/v1alpha1
+    kind: Channel
+    name: scheduler-demo
 ```
 
 ### Creation
 
-With the above in `foo.yaml`, you would install the image with:
+With the above in `foo.yaml`, you would create the Cloud Scheduler Job with:
 ```shell
 kubectl create -f foo.yaml
 ```
 
 ### Listing
 
-You can see what images are "warm" via:
+You can see what Cloud Scheduler Jobs have been created:
 ```shell
-$ kubectl get warmimages
-NAME                KIND
-example-warmimage   WarmImage.v2.mattmoor.io
+$ kubectl get cloudschedulersources
+NAME             AGE
+scheduler-test   4m
 ```
 
 ### Updating
 
-You can upgrade `foo.yaml` to `debian9` and run:
+You can's upgrade `foo.yaml` jobs yet because the reconciler doesn't work yet :(
+But if it did, you'd do:
 ```shell
 kubectl replace -f foo.yaml
 ```
 
 ### Removing
 
-You can remove a warmed image via:
+You can remove a Cloud Scheduler jobs via:
 ```shell
-kubectl delete warmimage example-warmimage
+kubectl delete cloudschedulersources scheduler-test
 ```
 
