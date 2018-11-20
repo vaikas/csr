@@ -19,6 +19,7 @@ package cloudschedulersource
 import (
 	"context"
 	"fmt"
+	"reflect"
 
 	"github.com/knative/pkg/controller"
 	"github.com/knative/pkg/logging/logkey"
@@ -42,7 +43,9 @@ import (
 	schedulerpb "google.golang.org/genproto/googleapis/cloud/scheduler/v1beta1"
 	"google.golang.org/grpc/codes"
 	gstatus "google.golang.org/grpc/status"
+	"k8s.io/apimachinery/pkg/api/equality"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/dynamic"
 )
 
@@ -129,6 +132,7 @@ func NewController(
 	cloudschedulersourceInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc:    impl.EnqueueControllerOf,
 		UpdateFunc: controller.PassNew(impl.EnqueueControllerOf),
+		DeleteFunc: impl.EnqueueControllerOf,
 	})
 
 	return impl
@@ -144,7 +148,7 @@ func (c *Reconciler) Reconcile(ctx context.Context, key string) error {
 	}
 
 	// Get the CloudSchedulerSource resource with this namespace/name
-	csr, err := c.cloudschedulersourcesLister.CloudSchedulerSources(namespace).Get(name)
+	original, err := c.cloudschedulersourcesLister.CloudSchedulerSources(namespace).Get(name)
 	if errors.IsNotFound(err) {
 		// The CloudSchedulerSource resource may no longer exist, in which case we stop processing.
 		runtime.HandleError(fmt.Errorf("cloudschedulersource '%s' in work queue no longer exists", key))
@@ -153,11 +157,23 @@ func (c *Reconciler) Reconcile(ctx context.Context, key string) error {
 		return err
 	}
 
-	if err := c.reconcileCloudSchedulerSource(ctx, csr); err != nil {
+	// Don't modify the informers copy
+	csr := original.DeepCopy()
+
+	err = c.reconcileCloudSchedulerSource(ctx, csr)
+
+	if equality.Semantic.DeepEqual(original.Status, csr.Status) &&
+		equality.Semantic.DeepEqual(original.ObjectMeta, csr.ObjectMeta) {
+		// If we didn't change anything (status or finalizers) then don't
+		// call update.
+		// This is important because the copy we loaded from the informer's
+		// cache may be stale and we don't want to overwrite a prior update
+		// to status with this stale state.
+	} else if _, err := c.update(csr); err != nil {
+		c.Logger.Warn("Failed to update CloudSchedulerService status", zap.Error(err))
 		return err
 	}
-
-	return nil
+	return err
 }
 
 func (c *Reconciler) reconcileCloudSchedulerSource(ctx context.Context, csr *v1alpha1.CloudSchedulerSource) error {
@@ -168,6 +184,20 @@ func (c *Reconciler) reconcileCloudSchedulerSource(ctx context.Context, csr *v1a
 		c.Logger.Infof("Couldn't resolve Sink URI: %s", err)
 		return err
 	}
+
+	// See if the source has been deleted.
+	deletionTimestamp := csr.DeletionTimestamp
+	if deletionTimestamp != nil {
+		err := c.deleteJob(csr)
+		if err != nil {
+			c.Logger.Infof("Unable to delete the Job: %s", err)
+			return err
+		}
+		c.removeFinalizer(csr)
+		return nil
+	}
+
+	c.addFinalizer(csr)
 
 	c.Logger.Infof("Resolved Sink URI to %q", uri)
 	csr.Status.SinkURI = uri
@@ -235,7 +265,7 @@ func (c *Reconciler) reconcileJob(name string, spec *v1alpha1.CloudSchedulerSour
 	existing, err := csc.GetJob(ctx, getReq)
 	if err == nil {
 		// TODO: This should reconcile properly... Update as necessary, etc...
-		c.Logger.Infof("Found existing job as: %+v", getReq)
+		c.Logger.Infof("Found existing job as: %+v", existing)
 		return existing, nil
 	}
 
@@ -273,4 +303,66 @@ func (c *Reconciler) reconcileJob(name string, spec *v1alpha1.CloudSchedulerSour
 	// TODO: Use resp.
 	c.Logger.Infof("Created job %+v", resp)
 	return resp, nil
+}
+
+func (c *Reconciler) deleteJob(csr *v1alpha1.CloudSchedulerSource) error {
+	parent := fmt.Sprintf("projects/%s/locations/%s", csr.Spec.GoogleCloudProject, csr.Spec.Location)
+	jobName := fmt.Sprintf("%s/jobs/%s", parent, csr.Name)
+
+	c.Logger.Infof("Parent: %q Job: %q", parent, jobName)
+
+	ctx := context.Background()
+	csc, err := scheduler.NewCloudSchedulerClient(ctx)
+	if err != nil {
+		return err
+	}
+
+	deleteReq := &schedulerpb.DeleteJobRequest{
+		Name: jobName,
+	}
+
+	c.Logger.Infof("Deleting job as: %q", jobName)
+	err = csc.DeleteJob(ctx, deleteReq)
+	if err == nil {
+		c.Logger.Infof("Deleted job: %+v", jobName)
+		return nil
+	}
+
+	if st, ok := gstatus.FromError(err); !ok {
+		c.Logger.Infof("Unknown error from the cloud scheduler client: %s", err)
+		return err
+	} else if st.Code() != codes.NotFound {
+		return err
+	}
+	return nil
+}
+
+func (c *Reconciler) addFinalizer(csr *v1alpha1.CloudSchedulerSource) {
+	finalizers := sets.NewString(csr.Finalizers...)
+	finalizers.Insert(finalizerName)
+	csr.Finalizers = finalizers.List()
+}
+
+func (c *Reconciler) removeFinalizer(csr *v1alpha1.CloudSchedulerSource) {
+	finalizers := sets.NewString(csr.Finalizers...)
+	finalizers.Delete(finalizerName)
+	csr.Finalizers = finalizers.List()
+}
+
+func (c *Reconciler) update(desired *v1alpha1.CloudSchedulerSource) (*v1alpha1.CloudSchedulerSource, error) {
+	csr, err := c.cloudschedulersourcesLister.CloudSchedulerSources(desired.Namespace).Get(desired.Name)
+	if err != nil {
+		return nil, err
+	}
+	// Check if there is anything to update.
+	if !reflect.DeepEqual(csr.Status, desired.Status) || !reflect.DeepEqual(csr.ObjectMeta, desired.ObjectMeta) {
+		// Don't modify the informers copy
+		existing := csr.DeepCopy()
+		existing.Status = desired.Status
+		existing.Finalizers = desired.Finalizers
+		client := c.cloudschedulersourceclientset.SourcesV1alpha1().CloudSchedulerSources(desired.Namespace)
+		// TODO: for CRD there's no updatestatus, so use normal update.
+		return client.Update(existing)
+	}
+	return csr, nil
 }

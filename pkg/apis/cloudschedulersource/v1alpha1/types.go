@@ -19,6 +19,8 @@ package v1alpha1
 import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
 // +genclient
@@ -80,6 +82,10 @@ type CloudSchedulerSourceStatus struct {
 	// for the CloudSchedulerSource
 	// +optional
 	SinkURI string `json:"sinkUri,omitempty"`
+}
+
+func (csr *CloudSchedulerSource) GetGroupVersionKind() schema.GroupVersionKind {
+	return SchemeGroupVersion.WithKind("CloudSchedulerSource")
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

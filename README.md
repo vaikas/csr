@@ -87,6 +87,29 @@ ko apply -f ./config
 ```
 
 
+## Create a channel the events are sent to
+```shell
+kubectl create -f ./channel.yaml
+```
+
+## Create a consumer for the events
+```shell
+ko create -f ./subscription.yaml
+```
+
+## Wire Cloud Scheduler Events to the function 
+First replace MY_GCP_PROJECT with your project id in example-csr.yaml, then create it.
+```shell
+ko create -f ./example-csr.yaml
+```
+
+## Check that the Cloud Scheduler Job was created
+```shell
+gcloud beta scheduler jobs list
+```
+
+Then wait a couple of minutes and you should see events in your message dumper.
+
 ### Uninstall
 
 Simply use the same command you used to install, but with `ko delete` instead of `ko apply`.
