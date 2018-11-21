@@ -118,12 +118,12 @@ kubectl apply -f https://raw.githubusercontent.com/vaikas-google/csr/master/subs
 Download the following file to your local file system, save it for example as `subscription.yaml`.
 For example with curl:
 ```shell
-curl -o ./subscription.yaml https://raw.githubusercontent.com/vaikas-google/csr/master/subscription.yaml
+curl -o ./subscription.yaml https://raw.githubusercontent.com/vaikas-google/csr/master/example-csr.yaml
 ```
 
 Then replace MY_GCP_PROJECT with your project id in example-csr.yaml, then deploy it with.
 ```shell
-kubectl apply -f ./subscription.yaml
+kubectl apply -f ./example-csr.yaml
 ```
 
 ## Check that the Cloud Scheduler Job was created
