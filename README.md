@@ -169,7 +169,7 @@ X-Request-Id: d484098c-553d-97b7-ae11-014fca1c543f
 
 ### Uninstall
 
-Simply use the same command you used to install, but with `ko delete` instead of `ko apply`.
+Simply use the same command you used to install, but with `kubectl delete` instead of `kubectl apply`.
 
 ## Usage
 
