@@ -45,7 +45,7 @@ import (
 	"google.golang.org/grpc/codes"
 	gstatus "google.golang.org/grpc/status"
 	"k8s.io/apimachinery/pkg/api/equality"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/dynamic"
 )
@@ -216,7 +216,7 @@ func (c *Reconciler) reconcileCloudSchedulerSource(ctx context.Context, csr *v1a
 	if ksvc.Status.Domain == "" {
 		// TODO: Update status appropriately
 		c.Logger.Infof("No domain configured for service, bailing...")
-		return fmt.Errorf("No domain configured for service")
+		return fmt.Errorf("no domain configured for service")
 	}
 
 	url := fmt.Sprintf("http://%s/", ksvc.Status.Domain)
@@ -273,13 +273,13 @@ func (c *Reconciler) reconcileJob(name string, spec *v1alpha1.CloudSchedulerSour
 
 		existingHttpTarget := existing.GetHttpTarget()
 		if existingHttpTarget == nil {
-			return nil, fmt.Errorf("Missing http target in the existing scheduler proto: %+v", existing)
+			return nil, fmt.Errorf("missing http target in the existing scheduler proto: %+v", existing)
 		}
 
 		updated := createJobProto(jobName, spec, target)
 		updatedHttpTarget := updated.GetHttpTarget()
 		if updatedHttpTarget == nil {
-			return nil, fmt.Errorf("Missing http target in the updated scheduler proto: %+v", updated)
+			return nil, fmt.Errorf("missing http target in the updated scheduler proto: %+v", updated)
 		}
 		if updated.Schedule != existing.Schedule ||
 			updated.TimeZone != existing.TimeZone ||
@@ -307,7 +307,7 @@ func (c *Reconciler) reconcileJob(name string, spec *v1alpha1.CloudSchedulerSour
 
 	req := &schedulerpb.CreateJobRequest{
 		Parent: parent,
-		Job:    createJobProto(name, spec, target),
+		Job:    createJobProto(jobName, spec, target),
 	}
 
 	c.Logger.Infof("Creating job as: %+v", req)
@@ -320,7 +320,7 @@ func (c *Reconciler) reconcileJob(name string, spec *v1alpha1.CloudSchedulerSour
 	return resp, nil
 }
 
-func createJobProto(name string, spec *v1alpha1.CloudSchedulerSourceSpec, target string) *schedulerpb.Job {
+func createJobProto(jobName string, spec *v1alpha1.CloudSchedulerSourceSpec, target string) *schedulerpb.Job {
 	// If no timezone specified, use UTC
 	timezone := "UTC"
 	if spec.TimeZone != "" {
@@ -346,7 +346,7 @@ func createJobProto(name string, spec *v1alpha1.CloudSchedulerSourceSpec, target
 	}
 
 	job := &schedulerpb.Job{
-		Name:     name,
+		Name:     jobName,
 		Schedule: spec.Schedule,
 		TimeZone: timezone,
 		Target:   httpTarget,
