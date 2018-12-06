@@ -31,6 +31,9 @@
 # Emacs garbage
 *~
 
+# GoLand
+.idea/
+
 # Bazel directories
 bazel-*
 bazel-bin
