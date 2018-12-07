@@ -103,22 +103,46 @@ Another purpose is to serve as an example of how to build an Event Source using 
 kubectl apply -f https://raw.githubusercontent.com/vaikas-google/csr/master/release.yaml
 ```
 
+## Create a Knative Service that will be invoked for each Scheduler job invocation
 
-## Create a channel the events are sent to
-```shell
-kubectl apply -f https://raw.githubusercontent.com/vaikas-google/csr/master/channel.yaml
+To verify the `Cloud Scheduler` is working, we will create a simple Knative
+`Service` that dumps incoming messages to its log. The `service.yaml` file
+defines this basic service.
+
+```yaml
+apiVersion: serving.knative.dev/v1alpha1
+kind: Service
+metadata:
+  name: github-message-dumper
+spec:
+  runLatest:
+    configuration:
+      revisionTemplate:
+        spec:
+          container:
+            image: gcr.io/knative-releases/github.com/knative/eventing-sources/cmd/message_dumper
 ```
 
-## Create a consumer for the events
+Enter the following command to create the service from `service.yaml`:
+
 ```shell
-kubectl apply -f https://raw.githubusercontent.com/vaikas-google/csr/master/subscription.yaml
+kubectl --namespace default apply -f https://raw.githubusercontent.com/vaikas-google/csr/master/service.yaml
 ```
+
+
+## Configure a Cloud Scheduler Source to send events directly to the service
+
+The simplest way to consume events is to wire the Source directly into the consuming
+function. The logical picture looks like this:
+
+![Source Directly To Function](csr-1-1.png)
 
 ## Wire Cloud Scheduler Events to the function 
 Download the following file to your local file system, save it for example as `subscription.yaml`.
 For example with curl:
 ```shell
-curl -o ./subscription.yaml https://raw.githubusercontent.com/vaikas-google/csr/master/example-csr.yaml
+curl https://raw.githubusercontent.com/vaikas-google/csr/master/one-to-one-csr.yaml | \
+sed "s/MY_GCP_PROJECT/$PROJECT_ID/g" | kubectl apply -f -
 ```
 
 Then replace MY_GCP_PROJECT with your project id in example-csr.yaml, then deploy it with.
