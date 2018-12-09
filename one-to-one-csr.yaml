@@ -9,7 +9,7 @@ spec:
   googleCloudProject: MY_GCP_PROJECT
   location: us-central1
   schedule: "every 1 mins"
-  body: "{test does this work}"
+  body: '{"data": "test does this work"}'
   sink:
     apiVersion: serving.knative.dev/v1alpha1
     kind: Service

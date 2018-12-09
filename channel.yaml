@@ -1,7 +1,7 @@
 apiVersion: eventing.knative.dev/v1alpha1
 kind: Channel
 metadata:
-  name: scheduler-demo
+  name: filter-source
 spec:
   provisioner:
     apiVersion: eventing.knative.dev/v1alpha1
