@@ -52,7 +52,7 @@ spec:
         - -logtostderr=true
         - -stderrthreshold=INFO
         - -raimage
-        - us.gcr.io/probable-summer-223122/receiveadapter-ed34e5d5c6278be2ee9b98fdb9ad4d9d@sha256:6fa7fc1e65e37e655a5f30d5f2a9b020ead8fb459981e1373f6bb3103080d450
+        - us.gcr.io/probable-summer-223122/receiveadapter-ed34e5d5c6278be2ee9b98fdb9ad4d9d@sha256:5db6ef89e1dc9a37772baf7080b3ac7444391483bf48b09738e4fe207eee7eb2
         env:
         - name: GOOGLE_APPLICATION_CREDENTIALS
           value: /var/secrets/google/key.json

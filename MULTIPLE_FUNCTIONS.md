@@ -93,7 +93,7 @@ a channel that looks like this:
 apiVersion: eventing.knative.dev/v1alpha1
 kind: Channel
 metadata:
-  name: scheduler-demo
+  name: filter-source
 spec:
   provisioner:
     apiVersion: eventing.knative.dev/v1alpha1
@@ -134,11 +134,11 @@ spec:
   googleCloudProject: MY_GCP_PROJECT
   location: us-central1
   schedule: "every 1 mins"
-  body: "{test does this work}"
+  body: '{"data": "test does this work"}'
   sink:
     apiVersion: eventing.knative.dev/v1alpha1
     kind: Channel
-    name: scheduler-demo
+    name: filter-source
 ```
 
 ```shell
@@ -148,7 +148,7 @@ sed "s/MY_GCP_PROJECT/$PROJECT_ID/g" | kubectl apply -f -
 
 ## Create the subscriptions
 
-We create two subscriptions, one that wires the incoming channel `scheduler-demo` into our `Filter` function
+We create two subscriptions, one that wires the incoming channel `filter-source` into our `Filter` function
 with any results going into `filtered` channel, and a second subscription that wires a `message-dumper` to
 receive Filtered events.
 ```yaml
@@ -163,7 +163,7 @@ spec:
   channel:
     apiVersion: eventing.knative.dev/v1alpha1
     kind: Channel
-    name: scheduler-demo
+    name: filter-source
   subscriber:
     ref:
       apiVersion: serving.knative.dev/v1alpha1
@@ -199,13 +199,6 @@ kubectl --namespace default apply -f https://raw.githubusercontent.com/vaikas-go
 ```
 
 
-## Wire Cloud Scheduler Events to the function 
-Create a Cloud Scheduler instance targeting your function with the following:
-```shell
-curl https://raw.githubusercontent.com/vaikas-google/csr/master/one-to-one-csr.yaml | \
-sed "s/MY_GCP_PROJECT/$PROJECT_ID/g" | kubectl apply -f -
-```
-
 ## Check that the Cloud Scheduler Job was created
 ```shell
 gcloud beta scheduler jobs list
@@ -221,141 +214,36 @@ kubectl -l 'serving.knative.dev/service=message-dumper' logs -c user-container
 ```
 And you should see an entry like this there
 ```shell
-vaikas@penguin:~/projects/go/src/github.com/vaikas-google/csr$ kubectl -l 'serving.knative.dev/service=message-dumper' logs -c user-container
-2018/12/07 22:05:00 Message Dumper received a message: POST / HTTP/1.1
+2018/12/09 22:56:01 Message Dumper received a message: POST / HTTP/1.1
 Host: message-dumper.default.svc.cluster.local
-Transfer-Encoding: chunked
 Accept-Encoding: gzip
-Ce-Cloudeventsversion: 0.1
-Ce-Eventid: 5ec4c08e-bab7-9748-af40-ac9a49dcc2d4
-Ce-Eventtime: 2018-12-07T22:05:00.492448449Z
-Ce-Eventtype: GoogleCloudScheduler
-Ce-Source: GCPCloudScheduler
-Content-Type: application/json
+Content-Length: 31
+Content-Type: text/plain; charset=utf-8
 User-Agent: Go-http-client/1.1
+X-B3-Parentspanid: 0d1db68310f73e7f
 X-B3-Sampled: 1
-X-B3-Spanid: bff04c5522a8dab8
-X-B3-Traceid: bff04c5522a8dab8
+X-B3-Spanid: 8509bc4679484f93
+X-B3-Traceid: 0d1db68310f73e7f
 X-Forwarded-For: 127.0.0.1
 X-Forwarded-Proto: http
-X-Request-Id: 0412e5bc-9d53-9b5e-be66-8450e32221a4
+X-Request-Id: 2b481027-d883-987a-bbf2-c958fb72ab2e
 
-276
-"UE9TVCAvIEhUVFAvMS4xDQpIb3N0OiBzY2hlZHVsZXItdGVzdC5kZWZhdWx0LmFpa2FzLm9yZw0KQWNjZXB0LUVuY29kaW5nOiBnemlwLGRlZmxhdGUsYnINCkNvbnRlbnQtTGVuZ3RoOiAyMQ0KQ29udGVudC1UeXBlOiBhcHBsaWNhdGlvbi9vY3RldC1zdHJlYW0NClVzZXItQWdlbnQ6IEdvb2dsZS1DbG91ZC1TY2hlZHVsZXINClgtQjMtU2FtcGxlZDogMQ0KWC1CMy1TcGFuaWQ6IDU5MjNiZGNiOGFjNGI2ZmMNClgtQjMtVHJhY2VpZDogNTkyM2JkY2I4YWM0YjZmYw0KWC1FbnZveS1FeHBlY3RlZC1ScS1UaW1lb3V0LU1zOiA2MDAwMA0KWC1FbnZveS1JbnRlcm5hbDogdHJ1ZQ0KWC1Gb3J3YXJkZWQtRm9yOiAxMC4yNDAuMC4xNiwgMTI3LjAuMC4xDQpYLUZvcndhcmRlZC1Qcm90bzogaHR0cA0KWC1SZXF1ZXN0LUlkOiA1ZWM0YzA4ZS1iYWI3LTk3NDgtYWY0MC1hYzlhNDlkY2MyZDQNCg0Ke3Rlc3QgZG9lcyB0aGlzIHdvcmt9"
-0
-```
-
-Where the last line is the base64 decoded message, you can cut&paste that line and feed it through base64 tool (the ^d below means
-hit CTRL-d):
-```shell
-base64 -d
-UE9TVCAvIEhUVFAvMS4xDQpIb3N0OiBzY2hlZHVsZXItdGVzdC5kZWZhdWx0LmFpa2FzLm9yZw0KQWNjZXB0LUVuY29kaW5nOiBnemlwLGRlZmxhdGUsYnINCkNvbnRlbnQtTGVuZ3RoOiAyMQ0KQ29udGVudC1UeXBlOiBhcHBsaWNhdGlvbi9vY3RldC1zdHJlYW0NClVzZXItQWdlbnQ6IEdvb2dsZS1DbG91ZC1TY2hlZHVsZXINClgtQjMtU2FtcGxlZDogMQ0KWC1CMy1TcGFuaWQ6IDU5MjNiZGNiOGFjNGI2ZmMNClgtQjMtVHJhY2VpZDogNTkyM2JkY2I4YWM0YjZmYw0KWC1FbnZveS1FeHBlY3RlZC1ScS1UaW1lb3V0LU1zOiA2MDAwMA0KWC1FbnZveS1JbnRlcm5hbDogdHJ1ZQ0KWC1Gb3J3YXJkZWQtRm9yOiAxMC4yNDAuMC4xNiwgMTI3LjAuMC4xDQpYLUZvcndhcmRlZC1Qcm90bzogaHR0cA0KWC1SZXF1ZXN0LUlkOiA1ZWM0YzA4ZS1iYWI3LTk3NDgtYWY0MC1hYzlhNDlkY2MyZDQNCg0Ke3Rlc3QgZG9lcyB0aGlzIHdvcmt9
-^d
-POST / HTTP/1.1
-Host: scheduler-test.default.aikas.org
-Accept-Encoding: gzip,deflate,br
-Content-Length: 21
-Content-Type: application/octet-stream
-User-Agent: Google-Cloud-Scheduler
-X-B3-Sampled: 1
-X-B3-Spanid: 5923bdcb8ac4b6fc
-X-B3-Traceid: 5923bdcb8ac4b6fc
-X-Envoy-Expected-Rq-Timeout-Ms: 60000
-X-Envoy-Internal: true
-X-Forwarded-For: 10.240.0.16, 127.0.0.1
-X-Forwarded-Proto: http
-X-Request-Id: 5ec4c08e-bab7-9748-af40-ac9a49dcc2d4
-
-{test does this work}
+{"data": "test does this work"}
 ```
 
 ## Uninstall
 
 ```shell
-kubectl delete cloudschedulersources scheduler-test
+kubectl delete cloudschedulersources filter-source
+kubectl delete services.serving message-dumper
+kubectl delete services.serving filter
+kubectl delete channels filtered
+kubectl delete channels filter-source
 ```
-
-## More complex examples
-* [Multiple functions working together]{MULTIPLE_FUNCTIONS.md}
 
 ## Check that the Cloud Scheduler Job was deleted
 ```shell
 gcloud beta scheduler jobs list
-```
-
-## Usage
-
-### Specification
-
-The specification for a scheduler job looks like:
-```yaml
-apiVersion: sources.aikas.org/v1alpha1
-kind: CloudSchedulerSource
-metadata:
-  name: scheduler-test
-spec:
-  googleCloudProject: quantum-reducer-434
-  location: us-central1
-  schedule: "every 1 mins"
-  body: "{test does this work}"
-  sink:
-    apiVersion: eventing.knative.dev/v1alpha1
-    kind: Channel
-    name: scheduler-demo
-```
-
-### Creation
-
-With the above in `foo.yaml`, you would create the Cloud Scheduler Job with:
-```shell
-kubectl create -f foo.yaml
-```
-
-### Listing
-
-You can see what Cloud Scheduler Jobs have been created:
-```shell
-$ kubectl get cloudschedulersources
-NAME             AGE
-scheduler-test   4m
-```
-
-### Updating
-
-You can upgrade `foo.yaml` jobs by updating the spec. For example, say you
-wanted to change the above job to send a different body, you'd update
-the foo.yaml from above like so:
-
-```yaml
-apiVersion: sources.aikas.org/v1alpha1
-kind: CloudSchedulerSource
-metadata:
-  name: scheduler-test
-spec:
-  googleCloudProject: quantum-reducer-434
-  location: us-central1
-  schedule: "every 1 mins"
-  body: "{test does this work, hopefully this does too}"
-  sink:
-    apiVersion: eventing.knative.dev/v1alpha1
-    kind: Channel
-    name: scheduler-demo
-```
-
-But if it did, you'd do:
-```shell
-kubectl replace -f foo.yaml
-```
-
-And on the next run (or so) the body send to your function will
-by changed to '{test does this work, hopefully this does too}'
-instead of '{test does this work}' like before.
-
-### Removing
-
-You can remove a Cloud Scheduler jobs via:
-```shell
-kubectl delete cloudschedulersources scheduler-test
 ```
 
 

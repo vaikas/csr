@@ -159,55 +159,50 @@ kubectl -l 'serving.knative.dev/service=message-dumper' logs -c user-container
 ```
 And you should see an entry like this there
 ```shell
-vaikas@penguin:~/projects/go/src/github.com/vaikas-google/csr$ kubectl -l 'serving.knative.dev/service=message-dumper' logs -c user-container
-2018/12/08 01:37:12 Message Dumper received a message: POST / HTTP/1.1
+2018/12/09 22:22:00 Message Dumper received a message: POST / HTTP/1.1
 Host: message-dumper.default.svc.cluster.local
 Transfer-Encoding: chunked
 Accept-Encoding: gzip
 Ce-Cloudeventsversion: 0.1
-Ce-Eventid: b02c7e0b-e99b-9382-8591-e202a6e87c4e
-Ce-Eventtime: 2018-12-08T01:37:01.338414672Z
+Ce-Eventid: e7c71f69-9f63-90b2-893f-6487fee78976
+Ce-Eventtime: 2018-12-09T22:22:00.152757485Z
 Ce-Eventtype: GoogleCloudScheduler
 Ce-Source: GCPCloudScheduler
 Content-Type: application/json
 User-Agent: Go-http-client/1.1
-X-B3-Parentspanid: 282c1ce4db1f0583
 X-B3-Sampled: 1
-X-B3-Spanid: 19310737b13a1d2b
-X-B3-Traceid: 282c1ce4db1f0583
-X-Envoy-Expected-Rq-Timeout-Ms: 60000
-X-Envoy-Internal: true
-X-Forwarded-For: 127.0.0.1, 127.0.0.1
+X-B3-Spanid: 3666e4b855d1cb03
+X-B3-Traceid: 3666e4b855d1cb03
+X-Forwarded-For: 127.0.0.1
 X-Forwarded-Proto: http
-X-Request-Id: 5c5008df-d8c8-9210-ad7e-6bac14e4495c
+X-Request-Id: a81a7f59-5ce5-9c3c-b793-9df0646b25fd
 
-1e
-"e3Rlc3QgZG9lcyB0aGlzIHdvcmt9"
+2e
+"eyJkYXRhIjogInRlc3QgZG9lcyB0aGlzIHdvcmsifQ=="
 0
 ```
 
-Where the second to last line is the base64 decoded message, you can cut&paste that line and feed it through base64 tool (the ^d below means
-hit CTRL-d):
+Where the second to last line is the base64 encoded message, you can cut&paste that line and feed it through base64 tool for decoding:
 ```shell
-vaikas@penguin:~/projects/go/src/github.com/vaikas-google/csr$ base64 -d
-e3Rlc3QgZG9lcyB0aGlzIHdvcmt9
-^d
-{test does this work}
+echo "eyJkYXRhIjogInRlc3QgZG9lcyB0aGlzIHdvcmsifQ==" | base64 -d
+{"data": "test does this work"}
 ```
 
 ## Uninstall
 
 ```shell
 kubectl delete cloudschedulersources scheduler-test
+kubectl delete services.serving message-dumper
 ```
-
-## More complex examples
-* [Multiple functions working together]{MULTIPLE_FUNCTIONS.md}
 
 ## Check that the Cloud Scheduler Job was deleted
 ```shell
 gcloud beta scheduler jobs list
 ```
+
+## More complex examples
+* [Multiple functions working together](MULTIPLE_FUNCTIONS.md)
+
 
 ## Usage
 
@@ -268,9 +263,14 @@ spec:
     name: scheduler-demo
 ```
 
-But if it did, you'd do:
+And then update the spec.
 ```shell
 kubectl replace -f foo.yaml
+```
+
+Of course you can also do this in place by using:
+```shell
+kubectl edit cloudschedulersources scheduler-test
 ```
 
 And on the next run (or so) the body send to your function will

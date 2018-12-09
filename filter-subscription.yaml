@@ -9,7 +9,7 @@ spec:
   channel:
     apiVersion: eventing.knative.dev/v1alpha1
     kind: Channel
-    name: scheduler-demo
+    name: filter-source
   subscriber:
     ref:
       apiVersion: serving.knative.dev/v1alpha1
