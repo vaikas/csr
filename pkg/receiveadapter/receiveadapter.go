@@ -20,7 +20,6 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
-	"net/http/httputil"
 	"time"
 
 	"github.com/google/uuid"
@@ -41,13 +40,13 @@ type CloudSchedulerReceiveAdapter struct {
 
 func (ra *CloudSchedulerReceiveAdapter) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
-	if reqBytes, err := httputil.DumpRequest(r, true); err == nil {
-		log.Printf("Message Dumper received a message: %+v", string(reqBytes))
-		w.Write(reqBytes)
+
+	if reqBytes, err := ioutil.ReadAll(r.Body); err == nil {
+		log.Printf("Cloud Scheduler Receive Adapter received a message: %+v", string(reqBytes))
 		ra.postMessage(reqBytes, extractEventID(r))
 
 	} else {
-		log.Printf("Error dumping the request: %+v :: %+v", err, r)
+		log.Printf("Error reading body of the request: %+v :: %+v", err, r)
 	}
 }
 

@@ -138,16 +138,10 @@ function. The logical picture looks like this:
 ![Source Directly To Function](csr-1-1.png)
 
 ## Wire Cloud Scheduler Events to the function 
-Download the following file to your local file system, save it for example as `subscription.yaml`.
-For example with curl:
+Create a Cloud Scheduler instance targeting your function with the following:
 ```shell
 curl https://raw.githubusercontent.com/vaikas-google/csr/master/one-to-one-csr.yaml | \
 sed "s/MY_GCP_PROJECT/$PROJECT_ID/g" | kubectl apply -f -
-```
-
-Then replace MY_GCP_PROJECT with your project id in example-csr.yaml, then deploy it with.
-```shell
-sed "s/MY_GCP_PROJECT/$PROJECT_ID/g" ./subscription.yaml | kubectl apply -f -
 ```
 
 ## Check that the Cloud Scheduler Job was created
@@ -157,8 +151,8 @@ gcloud beta scheduler jobs list
 
 Then wait a couple of minutes and you should see events in your message dumper.
 
-## Check that scheduler invoked the function
-Note this might take couple of minutes after the creation while the Scheduler
+## Check that Cloud Scheduler invoked the function
+Note this might take couple of minutes after the creation while the Cloud Scheduler
 gets going
 ```shell
 kubectl -l 'serving.knative.dev/service=message-dumper' logs -c user-container
@@ -166,34 +160,54 @@ kubectl -l 'serving.knative.dev/service=message-dumper' logs -c user-container
 And you should see an entry like this there
 ```shell
 vaikas@penguin:~/projects/go/src/github.com/vaikas-google/csr$ kubectl -l 'serving.knative.dev/service=message-dumper' logs -c user-container
-2018/11/20 16:01:18 Message Dumper received a message: POST / HTTP/1.1
+2018/12/08 01:37:12 Message Dumper received a message: POST / HTTP/1.1
 Host: message-dumper.default.svc.cluster.local
+Transfer-Encoding: chunked
 Accept-Encoding: gzip
 Ce-Cloudeventsversion: 0.1
-Ce-Eventid: 6b8d8507-de08-968a-a4d8-0b155151e632
-Ce-Eventtime: 2018-11-20T16:01:08.817652632Z
+Ce-Eventid: b02c7e0b-e99b-9382-8591-e202a6e87c4e
+Ce-Eventtime: 2018-12-08T01:37:01.338414672Z
 Ce-Eventtype: GoogleCloudScheduler
 Ce-Source: GCPCloudScheduler
-Content-Length: 546
 Content-Type: application/json
 User-Agent: Go-http-client/1.1
-X-B3-Parentspanid: 3d7bf0225241edaf
+X-B3-Parentspanid: 282c1ce4db1f0583
 X-B3-Sampled: 1
-X-B3-Spanid: 3fc86e7e9ebaad1f
-X-B3-Traceid: ca9174f7729ea465
+X-B3-Spanid: 19310737b13a1d2b
+X-B3-Traceid: 282c1ce4db1f0583
 X-Envoy-Expected-Rq-Timeout-Ms: 60000
 X-Envoy-Internal: true
 X-Forwarded-For: 127.0.0.1, 127.0.0.1
 X-Forwarded-Proto: http
-X-Request-Id: d484098c-553d-97b7-ae11-014fca1c543f
+X-Request-Id: 5c5008df-d8c8-9210-ad7e-6bac14e4495c
 
-"UE9TVCAvIEhUVFAvMS4xDQpIb3N0OiBzY2hlZHVsZXItdGVzdC5kZWZhdWx0LmFpa2FzLm9yZw0KQWNjZXB0LUVuY29kaW5nOiBnemlwLGRlZmxhdGUsYnINCkNvbnRlbnQtTGVuZ3RoOiAwDQpVc2VyLUFnZW50OiBHb29nbGUtQ2xvdWQtU2NoZWR1bGVyDQpYLUIzLVNhbXBsZWQ6IDENClgtQjMtU3BhbmlkOiBjM2ZhM2JjNTRkNDMyNDA2DQpYLUIzLVRyYWNlaWQ6IGMzZmEzYmM1NGQ0MzI0MDYNClgtRW52b3ktRXhwZWN0ZWQtUnEtVGltZW91dC1NczogNjAwMDANClgtRW52b3ktSW50ZXJuYWw6IHRydWUNClgtRm9yd2FyZGVkLUZvcjogMTAuMzYuMi4xLCAxMjcuMC4wLjENClgtRm9yd2FyZGVkLVByb3RvOiBodHRwDQpYLVJlcXVlc3QtSWQ6IDZiOGQ4NTA3LWRlMDgtOTY4YS1hNGQ4LTBiMTU1MTUxZTYzMg0KDQo="
+1e
+"e3Rlc3QgZG9lcyB0aGlzIHdvcmt9"
+0
 ```
 
+Where the second to last line is the base64 decoded message, you can cut&paste that line and feed it through base64 tool (the ^d below means
+hit CTRL-d):
+```shell
+vaikas@penguin:~/projects/go/src/github.com/vaikas-google/csr$ base64 -d
+e3Rlc3QgZG9lcyB0aGlzIHdvcmt9
+^d
+{test does this work}
+```
 
-### Uninstall
+## Uninstall
 
-Simply use the same command you used to install, but with `kubectl delete` instead of `kubectl apply`.
+```shell
+kubectl delete cloudschedulersources scheduler-test
+```
+
+## More complex examples
+* [Multiple functions working together]{MULTIPLE_FUNCTIONS.md}
+
+## Check that the Cloud Scheduler Job was deleted
+```shell
+gcloud beta scheduler jobs list
+```
 
 ## Usage
 
