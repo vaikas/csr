@@ -6,21 +6,6 @@ This example builds on the simple Source to Function model, with very simple fun
 demonstrating how to wire multiple functions together so that simple functions can
 be wired together for more complex tasks.
 
-## Details
-
-Actual implementation contacts the Cloud Scheduler API and creates a Job
-as specified in the CloudSechedulerSource CRD Spec. Upon success a Knative service is created
-to receive calls from the Cloud Scheduler and will then forward them to the Channel.
-
-
-## Purpose
-
-Provide an Event Source that allows subscribing to Cloud Scheduler and processing them
-in Knative.
-
-Another purpose is to serve as an example of how to build an Event Source using a
-[Warm Image[(https://github.com/mattmoor/warm-image) as a starting point.
-
 ## Prerequisites
 
 1. [Prerequisites from simple case](./README.md)
@@ -68,7 +53,7 @@ kubectl --namespace default apply -f https://raw.githubusercontent.com/vaikas-go
 apiVersion: serving.knative.dev/v1alpha1
 kind: Service
 metadata:
-  name: github-message-dumper
+  name: message-dumper
 spec:
   runLatest:
     configuration:
