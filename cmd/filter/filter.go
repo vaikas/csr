@@ -20,6 +20,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/knative/pkg/cloudevents"
 )
@@ -31,13 +32,14 @@ type event struct {
 }
 
 func (f *Filter) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusOK)
 
 	var body []byte
 	ctx, err := cloudevents.Binary.FromRequest(&body, r)
 
 	if err != nil {
 		log.Printf("Failed to parse events from the request: %s", err)
+		// TODO: Actually fail this request?
+		w.WriteHeader(http.StatusOK)
 		return
 	}
 	log.Printf("Received Context: %+v", ctx)
@@ -46,11 +48,31 @@ func (f *Filter) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	err = json.Unmarshal(body, &e)
 	if err != nil {
 		log.Printf("Failed to unmarshal event data: %s", err)
+		// TODO: Actually fail this request?
+		w.WriteHeader(http.StatusOK)
 		return
 	}
 	log.Printf("Received event as: %+v", e)
-	// TODO: Copy the headers here...
+	setHeaders(ctx, w.Header())
 	w.Write(body)
+	w.WriteHeader(http.StatusOK)
+}
+
+func setHeaders(context *cloudevents.EventContext, header http.Header) {
+	// These are required ones.
+	header.Add(cloudevents.HeaderCloudEventsVersion, cloudevents.CloudEventsVersion)
+	header.Add(cloudevents.HeaderEventID, context.EventID)
+	header.Add(cloudevents.HeaderEventType, context.EventType)
+	header.Add(cloudevents.HeaderSource, context.Source)
+
+	header.Add(cloudevents.HeaderEventTime, context.EventTime.Format(time.RFC3339Nano))
+	if context.EventTypeVersion != "" {
+		header.Add(cloudevents.HeaderEventTypeVersion, context.EventTypeVersion)
+	}
+	if context.SchemaURL != "" {
+		header.Add(cloudevents.HeaderSchemaURL, context.SchemaURL)
+	}
+	header.Add(cloudevents.HeaderContentType, context.ContentType)
 }
 
 func main() {

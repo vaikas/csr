@@ -1,3 +1,4 @@
+---
 apiVersion: serving.knative.dev/v1alpha1
 kind: Service
 metadata:
@@ -9,4 +10,4 @@ spec:
       revisionTemplate:
         spec:
           container:
-            image: us.gcr.io/probable-summer-223122/filter-55ddf8a10bddee5b31712a5ad318a3a3@sha256:49f619aa72aa0ff10b9797cd8fb6365aa795c244eb0f32fdf9533d93b8e018ff
+            image: us.gcr.io/probable-summer-223122/filter-55ddf8a10bddee5b31712a5ad318a3a3@sha256:ec10365c51c9bf9ec485a6c2c4ea803fe9c5fc058804430c4853bb43568e82d6
