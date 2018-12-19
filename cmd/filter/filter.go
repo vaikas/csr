@@ -17,6 +17,7 @@ limitations under the License.
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -25,14 +26,27 @@ import (
 	"github.com/knative/pkg/cloudevents"
 )
 
+type CloudEvent struct {
+	Context cloudevents.EventContext
+	Payload []byte
+}
+
 type Filter struct{}
 
 type event struct {
 	Data string `json:"data,omitEmpty"`
 }
 
-func (f *Filter) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+// myFunc is the function I should be writing...
+//func myFunc(ctx cloudevents.EventContext, e event) (event, error) {
+//func myFunc(ctx context.Context, e event) (event, error) {
+func myFunc(ctx context.Context, e string) (string, error) {
+	log.Printf("Received Context: %+v", ctx)
+	log.Printf("Received event as: %+v", e)
+	return e, nil
+}
 
+func (f *Filter) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var body []byte
 	ctx, err := cloudevents.Binary.FromRequest(&body, r)
 
@@ -76,5 +90,14 @@ func setHeaders(context *cloudevents.EventContext, header http.Header) {
 }
 
 func main() {
-	http.ListenAndServe(":8080", &Filter{})
+	m := cloudevents.NewMux()
+	err := m.Handle("GoogleCloudScheduler", myFunc)
+	if err != nil {
+		log.Fatalf("Failed to create handler %s", err)
+	}
+	http.ListenAndServe(":8080", m)
 }
+
+//func main() {
+//	http.ListenAndServe(":8080", &Filter{})
+//}
