@@ -103,6 +103,74 @@ Another purpose is to serve as an example of how to build an Event Source using 
 kubectl apply -f https://raw.githubusercontent.com/vaikas-google/csr/master/release.yaml
 ```
 
+## Inspect the Cloud Scheduler Source
+
+First list the available sources, you might have others available to you, but this is the one we'll be using
+in this example
+
+```shell
+ kubectl get crds -l "eventing.knative.dev/source=true"
+```
+
+You should see something like this:
+```shell
+vaikas@penguin:~/projects/go/src/github.com/vaikas-google/csr$
+NAME                                      AGE
+cloudschedulersources.sources.aikas.org   29d
+```
+
+you can then get more details about it, for example what are the available configuration options for it:
+```shell
+kubectl get crds cloudschedulersources.sources.aikas.org -oyaml
+```
+
+And in particular the Spec section is of interest:
+```shell
+ validation:
+    openAPIV3Schema:
+      properties:
+        apiVersion:
+          type: string
+        kind:
+          type: string
+        metadata:
+          type: object
+        spec:
+          properties:
+            body:
+              description: Optional body to send in the event
+              type: string
+            googleCloudProject:
+              description: Google Cloud Project ID to create the scheduler job in.
+              type: string
+            httpMethod:
+              description: Optional HTTP method to use when delivering the event.
+                If omitted, uses POST
+              type: string
+            location:
+              description: 'Google Cloud Platform region to create the scheduler job
+                in. For example: us-central1.'
+              type: string
+            schedule:
+              description: 'Schedule in cron format. For example: ''* * * * *'' (once
+                a minute), or human readable: ''every 1 mins'''
+              type: string
+            serviceAccountName:
+              description: Service Account to run Receive Adapter as. If omitted,
+                uses 'default'.
+              type: string
+            sink:
+              type: object
+            timezone:
+              description: Optional timezone of the schedule. If omitted, uses UTC.
+              type: string
+          required:
+          - googleCloudProject
+          - location
+          - schedule
+```
+
+
 ## Create a Knative Service that will be invoked for each Scheduler job invocation
 
 To verify the `Cloud Scheduler` is working, we will create a simple Knative
@@ -144,9 +212,28 @@ curl https://raw.githubusercontent.com/vaikas-google/csr/master/one-to-one-csr.y
 sed "s/MY_GCP_PROJECT/$PROJECT_ID/g" | kubectl apply -f -
 ```
 
+## Check that the Cloud Scheduler Source was created
+```shell
+kubectl get cloudschedulersources
+```
+
+And you should see something like this:
+```shell
+vaikas@penguin:~/projects/go/src/github.com/vaikas-google/csr$ kubectl get cloudschedulersources
+NAME             AGE
+scheduler-test   1m
+```
+
 ## Check that the Cloud Scheduler Job was created
 ```shell
 gcloud beta scheduler jobs list
+```
+
+You should see something like this:
+```shell
+vaikas@penguin:~/projects/go/src/github.com/vaikas-google/csr$ gcloud beta scheduler jobs list
+ID             LOCATION     SCHEDULE (TZ)       TARGET_TYPE  STATE
+filter-source  us-central1  every 1 mins (UTC)  HTTP         ENABLED
 ```
 
 Then wait a couple of minutes and you should see events in your message dumper.
@@ -159,34 +246,11 @@ kubectl -l 'serving.knative.dev/service=message-dumper' logs -c user-container
 ```
 And you should see an entry like this there
 ```shell
-2018/12/09 22:22:00 Message Dumper received a message: POST / HTTP/1.1
-Host: message-dumper.default.svc.cluster.local
-Transfer-Encoding: chunked
-Accept-Encoding: gzip
-Ce-Cloudeventsversion: 0.1
-Ce-Eventid: e7c71f69-9f63-90b2-893f-6487fee78976
-Ce-Eventtime: 2018-12-09T22:22:00.152757485Z
-Ce-Eventtype: GoogleCloudScheduler
-Ce-Source: GCPCloudScheduler
-Content-Type: application/json
-User-Agent: Go-http-client/1.1
-X-B3-Sampled: 1
-X-B3-Spanid: 3666e4b855d1cb03
-X-B3-Traceid: 3666e4b855d1cb03
-X-Forwarded-For: 127.0.0.1
-X-Forwarded-Proto: http
-X-Request-Id: a81a7f59-5ce5-9c3c-b793-9df0646b25fd
-
-2e
-"eyJkYXRhIjogInRlc3QgZG9lcyB0aGlzIHdvcmsifQ=="
-0
+2018/12/20 00:23:00 Received Cloud Event Context as: {CloudEventsVersion:0.1 EventID:2cd5d2ed-d2d1-94a1-bee7-d542d7ab834e EventTime:2018-12-20 00:23:00.498638175 +0000 UTC EventType:GoogleCloudScheduler EventTypeVersion: SchemaURL: ContentType:application/json Source:GCPCloudScheduler Extensions:map[]}
+2018/12/20 00:23:00 Received event data as: {"data": "test does this work"}
 ```
 
-Where the second to last line is the base64 encoded message, you can cut&paste that line and feed it through base64 tool for decoding:
-```shell
-echo "eyJkYXRhIjogInRlc3QgZG9lcyB0aGlzIHdvcmsifQ==" | base64 -d
-{"data": "test does this work"}
-```
+Where the first line is displaying the Cloud Events Context and the second line is the actual data line.
 
 ## Uninstall
 
