@@ -3,6 +3,8 @@ kind: CustomResourceDefinition
 metadata:
   # name must match the spec fields below, and be in the form: <plural>.<group>
   name: cloudschedulersources.sources.aikas.org
+  labels:
+    eventing.knative.dev/source: "true"
 spec:
   group: sources.aikas.org
   version: v1alpha1
@@ -16,3 +18,43 @@ spec:
     plural: cloudschedulersources
     singular: cloudschedulersource
     kind: CloudSchedulerSource
+    shortNames:
+    - csr
+  validation:
+    openAPIV3Schema:
+      properties:
+        apiVersion:
+          type: string
+        kind:
+          type: string
+        metadata:
+          type: object
+        spec:
+          properties:
+            serviceAccountName:
+              type: string
+              description: "Service Account to run Receive Adapter as. If omitted, uses 'default'."
+            googleCloudProject:
+              type: string
+              description: "Google Cloud Project ID to create the scheduler job in."
+            location:
+              type: string
+              description: "Google Cloud Platform region to create the scheduler job in. For example: us-central1."
+            schedule:
+              type: string
+              description: "Schedule in cron format. For example: '* * * * *' (once a minute), or human readable: 'every 1 mins'"
+            timezone:
+              type: string
+              description: "Optional timezone of the schedule. If omitted, uses UTC."
+            httpMethod:
+              type: string
+              description: "Optional HTTP method to use when delivering the event. If omitted, uses POST"
+            body:
+              type: string
+              description: "Optional body to send in the event"
+            sink:
+              type: object
+          required:
+          - googleCloudProject
+          - location
+          - schedule
