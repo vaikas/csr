@@ -7,6 +7,8 @@ metadata:
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
+  labels:
+    eventing.knative.dev/source: "true"
   name: cloudschedulersources.sources.aikas.org
 spec:
   group: sources.aikas.org
@@ -18,8 +20,52 @@ spec:
     - sources
     kind: CloudSchedulerSource
     plural: cloudschedulersources
+    shortNames:
+    - csr
     singular: cloudschedulersource
   scope: Namespaced
+  validation:
+    openAPIV3Schema:
+      properties:
+        apiVersion:
+          type: string
+        kind:
+          type: string
+        metadata:
+          type: object
+        spec:
+          properties:
+            body:
+              description: Optional body to send in the event
+              type: string
+            googleCloudProject:
+              description: Google Cloud Project ID to create the scheduler job in.
+              type: string
+            httpMethod:
+              description: Optional HTTP method to use when delivering the event.
+                If omitted, uses POST
+              type: string
+            location:
+              description: 'Google Cloud Platform region to create the scheduler job
+                in. For example: us-central1.'
+              type: string
+            schedule:
+              description: 'Schedule in cron format. For example: ''* * * * *'' (once
+                a minute), or human readable: ''every 1 mins'''
+              type: string
+            serviceAccountName:
+              description: Service Account to run Receive Adapter as. If omitted,
+                uses 'default'.
+              type: string
+            sink:
+              type: object
+            timezone:
+              description: Optional timezone of the schedule. If omitted, uses UTC.
+              type: string
+          required:
+          - googleCloudProject
+          - location
+          - schedule
   version: v1alpha1
 ---
 apiVersion: rbac.authorization.k8s.io/v1beta1
@@ -52,11 +98,11 @@ spec:
         - -logtostderr=true
         - -stderrthreshold=INFO
         - -raimage
-        - us.gcr.io/probable-summer-223122/receiveadapter-ed34e5d5c6278be2ee9b98fdb9ad4d9d@sha256:5db6ef89e1dc9a37772baf7080b3ac7444391483bf48b09738e4fe207eee7eb2
+        - us.gcr.io/probable-summer-223122/receiveadapter-ed34e5d5c6278be2ee9b98fdb9ad4d9d@sha256:3cfdb84bcfdc38bd03177c4933d36242969c77447a63d147dcda4f436eaea498
         env:
         - name: GOOGLE_APPLICATION_CREDENTIALS
           value: /var/secrets/google/key.json
-        image: us.gcr.io/probable-summer-223122/controller-870d05653c81134f2e0c38c2ba82aabd@sha256:943789c2ffd756d2fa61d04e0ecd0f2efe4c97591d11792e66ce5dd5f60b66e4
+        image: us.gcr.io/probable-summer-223122/controller-870d05653c81134f2e0c38c2ba82aabd@sha256:3e1ac6864f92d15a0dc774d8d18bac278174fc3d01de83f214239300d6a76de2
         name: cloudschedulersource-controller
         volumeMounts:
         - mountPath: /var/secrets/google
