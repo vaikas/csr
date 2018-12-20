@@ -175,7 +175,7 @@ And in particular the Spec section is of interest:
 
 To verify the `Cloud Scheduler` is working, we will create a simple Knative
 `Service` that dumps incoming messages to its log. The `service.yaml` file
-defines this basic service.
+defines this basic service. Image might be different if a new version has been released.
 
 ```yaml
 apiVersion: serving.knative.dev/v1alpha1
@@ -188,7 +188,7 @@ spec:
       revisionTemplate:
         spec:
           container:
-            image: gcr.io/knative-releases/github.com/knative/eventing-sources/cmd/message_dumper
+            image: us.gcr.io/probable-summer-223122/eventdumper-833f921e52f6ce76eb11f89bbfcea1df@sha256:7edb9fc190dcf350f4c49c48d3ff2bf71de836ff3dc32b1d5082fd13f90edee3
 ```
 
 Enter the following command to create the service from `service.yaml`:
