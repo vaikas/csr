@@ -24,7 +24,7 @@ required = [
 
 [[override]]
   name = "github.com/knative/pkg"
-  revision = "3e52d67e3d58f63f43ad61241b00a9974cb03ecd"
+  revision = "f3e33e3b92abb5cc1c63d49b03b56cf813b44676"
 
 [[override]]
   # Based on the version that google.golang.org/genproto depends on at HEAD.
