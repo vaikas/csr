@@ -43,7 +43,7 @@ func (ra *CloudSchedulerReceiveAdapter) ServeHTTP(w http.ResponseWriter, r *http
 
 	if reqBytes, err := ioutil.ReadAll(r.Body); err == nil {
 		log.Printf("Cloud Scheduler Receive Adapter received a message: %+v", string(reqBytes))
-		ra.postMessage(reqBytes, extractEventID(r))
+		ra.postMessage(string(reqBytes), extractEventID(r))
 
 	} else {
 		log.Printf("Error reading body of the request: %+v :: %+v", err, r)
@@ -61,12 +61,13 @@ func extractEventID(r *http.Request) string {
 	return ""
 }
 
-func (ra *CloudSchedulerReceiveAdapter) postMessage(payload interface{}, eventID string) error {
+func (ra *CloudSchedulerReceiveAdapter) postMessage(payload string, eventID string) error {
 	ctx := cloudevents.EventContext{
 		CloudEventsVersion: cloudevents.CloudEventsVersion,
 		EventType:          EventType,
 		EventID:            eventID,
 		EventTime:          time.Now(),
+		ContentType:        "application/json",
 		Source:             EventSource,
 	}
 	req, err := cloudevents.Binary.NewRequest(ra.Sink, payload, ctx)
@@ -75,7 +76,7 @@ func (ra *CloudSchedulerReceiveAdapter) postMessage(payload interface{}, eventID
 		return err
 	}
 
-	log.Printf("Posting to %q", ra.Sink)
+	log.Printf("Posting payload %q to %q", payload, ra.Sink)
 	client := ra.Client
 	if client == nil {
 		client = &http.Client{}
