@@ -17,23 +17,31 @@ limitations under the License.
 package main
 
 import (
+	"context"
 	"log"
 	"net/http"
-	"net/http/httputil"
+
+	"github.com/knative/pkg/cloudevents"
 )
 
-type MessageDumper struct{}
-
-func (md *MessageDumper) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusOK)
-	if reqBytes, err := httputil.DumpRequest(r, true); err == nil {
-		log.Printf("Message Dumper received a message: %+v", string(reqBytes))
-		w.Write(reqBytes)
+func myFunc(ctx context.Context, e string) error {
+	// Extract only the Cloud Context from the context because that's
+	// all we care about for this example and the entire context is toooooo much...
+	ec := cloudevents.FromContext(ctx)
+	if ec != nil {
+		log.Printf("Received Cloud Event Context as: %+v", *ec)
 	} else {
-		log.Printf("Error dumping the request: %+v :: %+v", err, r)
+		log.Printf("No Cloud Event Context found")
 	}
+	log.Printf("Received event data as: %+v", e)
+	return nil
 }
 
 func main() {
-	http.ListenAndServe(":8080", &MessageDumper{})
+	m := cloudevents.NewMux()
+	err := m.Handle("GoogleCloudScheduler", myFunc)
+	if err != nil {
+		log.Fatalf("Failed to create handler %s", err)
+	}
+	http.ListenAndServe(":8080", m)
 }

@@ -178,17 +178,23 @@ func (c *Reconciler) Reconcile(ctx context.Context, key string) error {
 }
 
 func (c *Reconciler) reconcileCloudSchedulerSource(ctx context.Context, csr *v1alpha1.CloudSchedulerSource) error {
+	// See if the source has been deleted.
+	deletionTimestamp := csr.DeletionTimestamp
+
 	// First try to resolve the sink, and if not found mark as not resolved.
 	uri, err := GetSinkURI(c.dynamicClient, csr.Spec.Sink, csr.Namespace)
 	if err != nil {
 		// TODO: Update status appropriately
 		//		csr.Status.MarkNoSink("NotFound", "%s", err)
 		c.Logger.Infof("Couldn't resolve Sink URI: %s", err)
-		return err
+		if deletionTimestamp == nil {
+			return err
+		}
+		// we don't care about the URI if we're deleting, so carry on...
+		uri = ""
 	}
+	c.Logger.Infof("Resolved Sink URI to %q", uri)
 
-	// See if the source has been deleted.
-	deletionTimestamp := csr.DeletionTimestamp
 	if deletionTimestamp != nil {
 		err := c.deleteJob(csr)
 		if err != nil {
@@ -201,7 +207,6 @@ func (c *Reconciler) reconcileCloudSchedulerSource(ctx context.Context, csr *v1a
 
 	c.addFinalizer(csr)
 
-	c.Logger.Infof("Resolved Sink URI to %q", uri)
 	csr.Status.SinkURI = uri
 
 	// Make sure Service is in the state we expect it to be in.
