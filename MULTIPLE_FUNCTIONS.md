@@ -22,9 +22,9 @@ functions downstream.
 
 ## Create a Knative Service (Filter function) that will be invoked for each Scheduler job invocation
 
-To verify the `Cloud Scheduler` is working, we will create a simple Knative
-`Service` that dumps incoming messages to its log. The `service.yaml` file
-defines this basic service.
+To verify the `Cloud Scheduler` is working, we will create couple of services. The first
+one is a simple filter that only lets some events through. Note the image tag might be different
+from the specified one because it might be newer.
 
 ```yaml
 apiVersion: serving.knative.dev/v1alpha1
@@ -197,23 +197,11 @@ gets going
 ```shell
 kubectl -l 'serving.knative.dev/service=message-dumper' logs -c user-container
 ```
+
 And you should see an entry like this there
 ```shell
-2018/12/09 22:56:01 Message Dumper received a message: POST / HTTP/1.1
-Host: message-dumper.default.svc.cluster.local
-Accept-Encoding: gzip
-Content-Length: 31
-Content-Type: text/plain; charset=utf-8
-User-Agent: Go-http-client/1.1
-X-B3-Parentspanid: 0d1db68310f73e7f
-X-B3-Sampled: 1
-X-B3-Spanid: 8509bc4679484f93
-X-B3-Traceid: 0d1db68310f73e7f
-X-Forwarded-For: 127.0.0.1
-X-Forwarded-Proto: http
-X-Request-Id: 2b481027-d883-987a-bbf2-c958fb72ab2e
-
-{"data": "test does this work"}
+2018/12/20 03:59:01 Received Cloud Event Context as: {CloudEventsVersion:0.1 EventID:bd81c01d-7fc5-968a-85b3-7f7f5c1cce73 EventTime:2018-12-20 03:59:00.653471761 +0000 UTC EventType:GoogleCloudScheduler EventTypeVersion: SchemaURL: ContentType:application/json Source:GCPCloudScheduler Extensions:map[]}
+2018/12/20 03:59:01 Received event data as: {"data": "test does this work"}
 ```
 
 ## Uninstall

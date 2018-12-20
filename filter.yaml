@@ -10,4 +10,4 @@ spec:
       revisionTemplate:
         spec:
           container:
-            image: us.gcr.io/probable-summer-223122/filter-55ddf8a10bddee5b31712a5ad318a3a3@sha256:ec10365c51c9bf9ec485a6c2c4ea803fe9c5fc058804430c4853bb43568e82d6
+            image: us.gcr.io/probable-summer-223122/filter-55ddf8a10bddee5b31712a5ad318a3a3@sha256:338147703988c15f6c898a0ac9f019b70ff38fc686d04bbde8508188d482539e
